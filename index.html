@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#1e2b3f">
+  <meta name="description" content="Consultoria imobiliária personalizada em Sorocaba. Encontre seu próximo imóvel com segurança e acompanhamento em cada etapa.">
+  <link rel="icon" type="image/png" sizes="128x128" href="assets/favicon.png">
+  <title>Nei Carvalho | Consultor Imobiliário em Sorocaba</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#inicio">Pular para o conteúdo</a>
+  <header class="site-header" id="siteHeader">
+    <div class="header-inner">
+      <a class="brand" href="index.html" aria-label="Nei Carvalho, início">
+        <img src="assets/logo-trans.png" alt="Logo Nei Carvalho" width="72" height="72">
+        <span class="brand-copy"><strong>Nei Carvalho</strong><small>Consultor Imobiliário</small></span>
+      </a>
+      <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="primaryNav" aria-label="Abrir menu">
+        <span></span><span></span>
+      </button>
+    </div>
+  </header>
+  <nav class="primary-nav" id="primaryNav" aria-label="Navegação principal">
+    <a href="#inicio">Início</a>
+    <a href="#imoveis">Imóveis</a>
+    <a href="#sobre">Sobre</a>
+    <a href="#contato">Contato</a>
+    <a class="nav-cta" href="https://wa.me/5515996008542?text=Ol%C3%A1%2C%20Nei!%20Gostaria%20de%20conversar%20sobre%20im%C3%B3veis." target="_blank" rel="noopener noreferrer">Fale comigo <span aria-hidden="true">↗</span></a>
+  </nav>
+
+  <main>
+    <section class="hero" id="inicio" aria-labelledby="heroTitle">
+      <div class="hero-shade"></div>
+      <div class="hero-content page-width">
+        <p class="eyebrow hero-eyebrow"><span class="eyebrow-mark"></span> Nei Carvalho <span class="eyebrow-divider">—</span> Consultor Imobiliário</p>
+        <h1 id="heroTitle">Encontre o imóvel<br>ideal para <em>você.</em></h1>
+        <p class="hero-intro">Consultoria imobiliária personalizada, com segurança e acompanhamento em cada etapa da sua conquista.</p>
+        <div class="hero-actions">
+          <a class="button button-light" href="#imoveis">Explorar imóveis <span aria-hidden="true">↘</span></a>
+          <a class="button button-outline-light" href="#contato">Falar com o consultor <span aria-hidden="true">↗</span></a>
+        </div>
+        <div class="hero-caption"><span class="caption-line"></span><span>SOROCABA · SÃO PAULO</span></div>
+      </div>
+      <a class="hero-scroll" href="#imoveis" aria-label="Desça para conhecer os imóveis"><span></span></a>
+    </section>
+
+    <section class="search-wrap page-width" aria-label="Buscar imóveis">
+      <form class="search-card" id="propertySearch">
+        <div class="search-heading">
+          <span class="search-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5M5.5 9v11h13V9M9 20v-6h6v6"/></svg>
+          </span>
+          <div><strong>Encontre seu próximo endereço</strong><small>Uma busca mais próxima do que você procura.</small></div>
+        </div>
+        <label class="search-field">
+          <span>Tipo de imóvel</span>
+          <select id="typeFilter" name="tipo">
+            <option value="todos">Todos os tipos</option>
+            <option value="Casa">Casa</option>
+            <option value="Apartamento">Apartamento</option>
+            <option value="Terreno">Terreno</option>
+          </select>
+        </label>
+        <div class="search-field">
+          <span>Finalidade</span>
+          <label class="search-field">
+            <span>Finalidade</span>
+            <select id="purposeFilter" name="finalidade">
+              <option value="todos">Todas as finalidades</option>
+              <option value="comprar">Comprar</option>
+              <option value="alugar">Alugar</option>
+              <option value="planta">Comprar na planta</option>
+              <option value="temporada">Temporada</option>
+            </select>
+          </label>
+        </div>
+        <label class="search-field">
+          <span>Faixa de preço</span>
+          <select id="priceFilter" name="preco">
+            <option value="todos">Qualquer valor</option>
+            <option value="ate800">Até R$ 800 mil</option>
+            <option value="800a1500">R$ 800 mil a R$ 1,5 mi</option>
+            <option value="1500a2500">R$ 1,5 mi a R$ 2,5 mi</option>
+            <option value="acima2500">Acima de R$ 2,5 mi</option>
+          </select>
+        </label>
+        <button class="button button-navy search-submit" type="submit">Buscar imóveis <span aria-hidden="true">→</span></button>
+      </form>
+    </section>
+
+    <section class="section properties-section" id="imoveis" aria-labelledby="propertiesTitle">
+      <div class="page-width">
+        <div class="section-heading properties-heading reveal">
+          <div>
+            <p class="eyebrow eyebrow-dark"><span class="eyebrow-mark"></span> Oportunidades selecionadas</p>
+            <h2 id="propertiesTitle">Imóveis selecionados<br>para <em>você.</em></h2>
+          </div>
+          <div class="carousel-controls">
+            <p>Encontre um lugar que combina com o seu próximo capítulo.</p>
+            <div class="carousel-buttons">
+              <button class="carousel-arrow" id="carouselPrev" type="button" aria-label="Ver imóveis anteriores" disabled><span aria-hidden="true">←</span></button>
+              <button class="carousel-arrow" id="carouselNext" type="button" aria-label="Ver próximos imóveis"><span aria-hidden="true">→</span></button>
+            </div>
+          </div>
+        </div>
+        <p class="demo-notice"><span aria-hidden="true">✳</span> Prévia demonstrativa: imóveis, imagens e valores fictícios.</p>
+        <div class="carousel-viewport" id="carouselViewport" tabindex="0" aria-label="Carrossel de imóveis. Use as setas do teclado para navegar.">
+          <div class="property-track" id="propertyTrack">
+            <article class="property-card">
+              <a class="property-photo" href="imovel.html?id=casa-moderna-01" aria-label="Ver Casa contemporânea com jardim">
+                <img src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&amp;fit=crop&amp;w=960&amp;q=80" alt="Casa contemporânea com jardim e fachada iluminada" loading="lazy">
+                <span class="property-badge">Destaque</span><span class="photo-arrow" aria-hidden="true">↗</span>
+              </a>
+              <div class="property-body"><p class="property-type">Casa <span>·</span> Jardim Europa</p><h3>Casa contemporânea com jardim</h3><p class="property-location"><span aria-hidden="true">⌖</span> Sorocaba, SP</p>
+                <div class="property-specs"><span>3 quartos</span><span>3 banheiros</span><span>2 vagas</span><span>218 m²</span></div>
+                <div class="property-bottom"><strong>R$ 1.280.000</strong><a href="imovel.html?id=casa-moderna-01">Ver imóvel <span aria-hidden="true">→</span></a></div>
+                <a class="interest-link" href="https://wa.me/5515996008542?text=Ol%C3%A1%2C%20Nei!%20Vi%20a%20pr%C3%A9via%20do%20im%C3%B3vel%20Casa%20contempor%C3%A2nea%20com%20jardim." target="_blank" rel="noopener noreferrer">Tenho interesse <span aria-hidden="true">↗</span></a>
+              </div>
+            </article>
+            <article class="property-card">
+              <a class="property-photo" href="imovel.html?id=apartamento-premium-01" aria-label="Ver Apartamento na planta com vista para a cidade">
+                <img src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&amp;fit=crop&amp;w=960&amp;q=80" alt="Sala ampla e sofisticada em apartamento de alto padrão" loading="lazy">
+                <span class="property-badge">Destaque</span><span class="photo-arrow" aria-hidden="true">↗</span>
+              </a>
+              <div class="property-body"><p class="property-type">Apartamento <span>·</span> Campolim</p><h3>Apartamento na planta com vista para a cidade</h3><p class="property-location"><span aria-hidden="true">⌖</span> Sorocaba, SP</p>
+                <div class="property-specs"><span>3 quartos</span><span>3 banheiros</span><span>2 vagas</span><span>142 m²</span></div>
+                <div class="property-bottom"><strong>R$ 1.090.000</strong><a href="imovel.html?id=apartamento-premium-01">Ver imóvel <span aria-hidden="true">→</span></a></div>
+                <a class="interest-link" href="https://wa.me/5515996008542?text=Ol%C3%A1%2C%20Nei!%20Vi%20a%20pr%C3%A9via%20do%20im%C3%B3vel%20Apartamento%20na%20planta%20com%20vista%20para%20a%20cidade." target="_blank" rel="noopener noreferrer">Tenho interesse <span aria-hidden="true">↗</span></a>
+              </div>
+            </article>
+            <article class="property-card">
+              <a class="property-photo" href="imovel.html?id=casa-condominio-01" aria-label="Ver Casa com piscina para temporada">
+                <img src="https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?auto=format&amp;fit=crop&amp;w=960&amp;q=80" alt="Residência moderna com piscina em área de lazer" loading="lazy">
+                <span class="property-badge">Destaque</span><span class="photo-arrow" aria-hidden="true">↗</span>
+              </a>
+              <div class="property-body"><p class="property-type">Casa em condomínio <span>·</span> Ibiti</p><h3>Casa com piscina para temporada</h3><p class="property-location"><span aria-hidden="true">⌖</span> Sorocaba, SP</p>
+                <div class="property-specs"><span>4 quartos</span><span>4 banheiros</span><span>3 vagas</span><span>286 m²</span></div>
+                <div class="property-bottom"><strong>R$ 1.200/diária</strong><a href="imovel.html?id=casa-condominio-01">Ver imóvel <span aria-hidden="true">→</span></a></div>
+                <a class="interest-link" href="https://wa.me/5515996008542?text=Ol%C3%A1%2C%20Nei!%20Vi%20a%20pr%C3%A9via%20do%20im%C3%B3vel%20Casa%20com%20piscina%20para%20temporada." target="_blank" rel="noopener noreferrer">Tenho interesse <span aria-hidden="true">↗</span></a>
+              </div>
+            </article>
+            <article class="property-card">
+              <a class="property-photo" href="imovel.html?id=apartamento-jardim-01" aria-label="Ver Apartamento para locação com varanda ampla">
+                <img src="https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&amp;fit=crop&amp;w=960&amp;q=80" alt="Interior contemporâneo com integração de ambientes" loading="lazy">
+                <span class="photo-arrow" aria-hidden="true">↗</span>
+              </a>
+              <div class="property-body"><p class="property-type">Apartamento <span>·</span> Jardim Faculdade</p><h3>Apartamento para locação com varanda ampla</h3><p class="property-location"><span aria-hidden="true">⌖</span> Sorocaba, SP</p>
+                <div class="property-specs"><span>2 quartos</span><span>2 banheiros</span><span>2 vagas</span><span>106 m²</span></div>
+                <div class="property-bottom"><strong>R$ 4.800/mês</strong><a href="imovel.html?id=apartamento-jardim-01">Ver imóvel <span aria-hidden="true">→</span></a></div>
+                <a class="interest-link" href="https://wa.me/5515996008542?text=Ol%C3%A1%2C%20Nei!%20Vi%20a%20pr%C3%A9via%20do%20im%C3%B3vel%20Apartamento%20para%20loca%C3%A7%C3%A3o%20com%20varanda%20ampla." target="_blank" rel="noopener noreferrer">Tenho interesse <span aria-hidden="true">↗</span></a>
+              </div>
+            </article>
+            <article class="property-card">
+              <a class="property-photo" href="imovel.html?id=casa-terrea-01" aria-label="Ver Casa térrea para locação com área de lazer">
+                <img src="https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&amp;fit=crop&amp;w=960&amp;q=80" alt="Casa térrea moderna com fachada de linhas elegantes" loading="lazy">
+                <span class="photo-arrow" aria-hidden="true">↗</span>
+              </a>
+              <div class="property-body"><p class="property-type">Casa <span>·</span> Parque Campolim</p><h3>Casa térrea para locação com área de lazer</h3><p class="property-location"><span aria-hidden="true">⌖</span> Sorocaba, SP</p>
+                <div class="property-specs"><span>3 quartos</span><span>2 banheiros</span><span>2 vagas</span><span>194 m²</span></div>
+                <div class="property-bottom"><strong>R$ 6.200/mês</strong><a href="imovel.html?id=casa-terrea-01">Ver imóvel <span aria-hidden="true">→</span></a></div>
+                <a class="interest-link" href="https://wa.me/5515996008542?text=Ol%C3%A1%2C%20Nei!%20Vi%20a%20pr%C3%A9via%20do%20im%C3%B3vel%20Casa%20t%C3%A9rrea%20para%20loca%C3%A7%C3%A3o%20com%20%C3%A1rea%20de%20lazer." target="_blank" rel="noopener noreferrer">Tenho interesse <span aria-hidden="true">↗</span></a>
+              </div>
+            </article>
+            <article class="property-card">
+              <a class="property-photo" href="imovel.html?id=terreno-vista-01" aria-label="Ver Terreno em condomínio com vista">
+                <img src="https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&amp;fit=crop&amp;w=960&amp;q=80" alt="Terreno amplo em paisagem verde com vista aberta" loading="lazy">
+                <span class="photo-arrow" aria-hidden="true">↗</span>
+              </a>
+              <div class="property-body"><p class="property-type">Terreno <span>·</span> Condomínio Vista Verde</p><h3>Terreno em condomínio com vista</h3><p class="property-location"><span aria-hidden="true">⌖</span> Sorocaba, SP</p>
+                <div class="property-specs"><span>— quartos</span><span>— banheiros</span><span>— vagas</span><span>420 m²</span></div>
+                <div class="property-bottom"><strong>R$ 420.000</strong><a href="imovel.html?id=terreno-vista-01">Ver imóvel <span aria-hidden="true">→</span></a></div>
+                <a class="interest-link" href="https://wa.me/5515996008542?text=Ol%C3%A1%2C%20Nei!%20Vi%20a%20pr%C3%A9via%20do%20im%C3%B3vel%20Terreno%20em%20condom%C3%ADnio%20com%20vista." target="_blank" rel="noopener noreferrer">Tenho interesse <span aria-hidden="true">↗</span></a>
+              </div>
+            </article>
+          </div>
+        </div>
+        <div class="empty-results" id="emptyResults" hidden>
+          <span class="empty-icon" aria-hidden="true">⌕</span>
+          <h3>Nenhum imóvel encontrado com esses filtros.</h3>
+          <p>Experimente ajustar a busca para ver outras opções demonstrativas.</p>
+          <button class="text-button" id="clearFilters" type="button">Limpar filtros <span aria-hidden="true">→</span></button>
+        </div>
+        <div class="carousel-progress" aria-hidden="true"><span id="carouselProgress"></span></div>
+        <p class="carousel-hint"><span aria-hidden="true">↔</span> Deslize para explorar mais imóveis</p>
+      </div>
+    </section>
+
+    <section class="about-section" id="sobre" aria-labelledby="aboutTitle">
+      <div class="page-width about-grid">
+        <div class="about-copy reveal">
+          <p class="eyebrow"><span class="eyebrow-mark"></span> Sobre o consultor</p>
+          <h2 id="aboutTitle">Mais segurança para realizar seu próximo <em>investimento.</em></h2>
+          <p>Nei Carvalho atua na intermediação de imóveis prontos e na planta, oferecendo acompanhamento personalizado em análise documental, avaliação financeira, levantamento de certidões, processos de financiamento e preparação de documentos para cartórios e instituições bancárias.</p>
+          <a class="underlined-link" href="#contato">Conheça meu atendimento <span aria-hidden="true">→</span></a>
+        </div>
+        <div class="about-features reveal">
+          <article class="feature-item"><span class="feature-icon"><svg viewBox="0 0 32 32"><circle cx="16" cy="10" r="5"/><path d="M6 27c.8-5.3 4.1-8 10-8s9.2 2.7 10 8"/></svg></span><div><h3>Atendimento personalizado</h3><p>Orientação alinhada aos seus planos e prioridades.</p></div></article>
+          <article class="feature-item"><span class="feature-icon"><svg viewBox="0 0 32 32"><path d="M9 4h10l5 5v19H9z"/><path d="M19 4v6h6M13 16h7M13 21h7"/></svg></span><div><h3>Organização documental</h3><p>Mais clareza para avançar em cada etapa.</p></div></article>
+          <article class="feature-item"><span class="feature-icon"><svg viewBox="0 0 32 32"><path d="M4 13 16 4l12 9M7 12v15h18V12M13 27v-9h6v9"/></svg></span><div><h3>Acompanhamento financeiro</h3><p>Suporte durante os processos de financiamento.</p></div></article>
+          <article class="feature-item"><span class="feature-icon"><svg viewBox="0 0 32 32"><path d="M16 3 26 7v8c0 6-4 10-10 14C10 25 6 21 6 15V7z"/><path d="m11 16 3 3 7-7"/></svg></span><div><h3>Segurança e transparência</h3><p>Informação clara para decisões mais tranquilas.</p></div></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section services-section" id="servicos" aria-labelledby="servicesTitle">
+      <div class="page-width">
+        <div class="section-heading services-heading reveal">
+          <div><p class="eyebrow eyebrow-dark"><span class="eyebrow-mark"></span> Como posso ajudar</p><h2 id="servicesTitle">Um acompanhamento completo<br>para sua próxima <em>conquista.</em></h2></div>
+          <p>Da primeira conversa à conclusão do processo, conte com orientação em cada passo.</p>
+        </div>
+        <div class="services-grid">
+          <article class="service-card reveal"><span class="service-number">01</span><div><h3>Compra de imóveis</h3><p>Encontre opções compatíveis com o que você busca.</p></div><span class="service-arrow" aria-hidden="true">↗</span></article>
+          <article class="service-card reveal"><span class="service-number">02</span><div><h3>Imóveis na planta</h3><p>Orientação para avaliar oportunidades em lançamento.</p></div><span class="service-arrow" aria-hidden="true">↗</span></article>
+          <article class="service-card reveal"><span class="service-number">03</span><div><h3>Consultoria imobiliária</h3><p>Conversa consultiva para apoiar sua tomada de decisão.</p></div><span class="service-arrow" aria-hidden="true">↗</span></article>
+          <article class="service-card reveal"><span class="service-number">04</span><div><h3>Análise documental</h3><p>Levantamento e organização de documentos e certidões.</p></div><span class="service-arrow" aria-hidden="true">↗</span></article>
+          <article class="service-card reveal"><span class="service-number">05</span><div><h3>Assessoria em financiamento</h3><p>Acompanhamento nas etapas do processo financeiro.</p></div><span class="service-arrow" aria-hidden="true">↗</span></article>
+          <article class="service-card reveal"><span class="service-number">06</span><div><h3>Processos cartorários</h3><p>Preparação de documentos para cartórios e instituições.</p></div><span class="service-arrow" aria-hidden="true">↗</span></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="contact-section" id="contato" aria-labelledby="contactTitle">
+      <div class="page-width contact-inner reveal">
+        <div class="contact-decoration" aria-hidden="true"><span></span></div>
+        <p class="eyebrow"><span class="eyebrow-mark"></span> Vamos conversar</p>
+        <h2 id="contactTitle">Seu próximo imóvel começa com uma boa <em>orientação.</em></h2>
+        <p>Entre em contato para conversar sobre seus objetivos e encontrar uma opção alinhada ao que você procura.</p>
+        <a class="button button-light" href="https://wa.me/5515996008542?text=Ol%C3%A1%2C%20Nei!%20Gostaria%20de%20conversar%20sobre%20meus%20planos%20imobili%C3%A1rios." target="_blank" rel="noopener noreferrer">Conversar pelo WhatsApp <span aria-hidden="true">↗</span></a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="page-width footer-grid">
+      <div class="footer-brand">
+        <a class="brand" href="#inicio" aria-label="Nei Carvalho, voltar ao início"><img src="assets/logo-trans.png" alt="" width="68" height="68"><span class="brand-copy"><strong>Nei Carvalho</strong><small>Consultor Imobiliário</small></span></a>
+        <p>Consultoria imobiliária<br>Sorocaba, SP — Brasil</p>
+      </div>
+      <div class="footer-links"><h2>Navegue</h2><a href="#inicio">Início</a><a href="#imoveis">Imóveis</a><a href="#sobre">Sobre</a><a href="#servicos">Serviços</a><a href="#contato">Contato</a></div>
+      <div class="footer-contact"><h2>Fale comigo</h2><a href="tel:+5515996008542">+55 15 99600-8542</a><a href="mailto:nei.carvalho@creci.org.br">nei.carvalho@creci.org.br</a><a href="https://wa.me/5515996008542" target="_blank" rel="noopener noreferrer">WhatsApp <span aria-hidden="true">↗</span></a></div>
+    </div>
+    <div class="page-width footer-bottom"><p>© <span data-current-year>2026</span> Nei Carvalho. Todos os direitos reservados.</p><p>Prévia demonstrativa. Imóveis, imagens ilustrativas e valores fictícios, sujeitos à substituição por informações reais.</p></div>
+  </footer>
+  <a class="floating-whatsapp" href="https://wa.me/5515996008542?text=Ol%C3%A1%2C%20Nei!%20Gostaria%20de%20conversar%20sobre%20im%C3%B3veis." target="_blank" rel="noopener noreferrer" aria-label="Fale com Nei Carvalho pelo WhatsApp">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 11.5a8.5 8.5 0 0 1-12.4 7.6L3 20.5l1.4-5.1A8.5 8.5 0 1 1 20.5 11.5Z"/><path d="M8.2 7.7c.3-.3.8-.4 1.1-.1l1.2 1.8c.2.3.2.7-.1 1l-.8.8a9 9 0 0 0 3.2 3.2l.8-.8c.3-.3.7-.3 1-.1l1.8 1.2c.3.2.3.8-.1 1.1-.6.6-1.4.8-2.1.6a10.5 10.5 0 0 1-6.7-6.7c-.2-.8 0-1.5.7-2Z"/></svg>
+  </a>
+</body>
+</html>
