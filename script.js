@@ -308,15 +308,13 @@ async function initializeDetailPage() {
   ].filter(Boolean);
   const propertyImages = property.images || [];
   const gallery = propertyImages.length ? `
-    <div class="detail-gallery">
+    <div class="detail-gallery" role="group" aria-label="Fotografias do imóvel">
+      ${propertyImages.length > 1 ? '<button class="gallery-arrow gallery-prev" type="button" aria-label="Foto anterior"><span aria-hidden="true">←</span></button>' : ""}
       <div class="gallery-main">
         <img id="galleryMainImage" src="${escapeHtml(propertyImages[0].src)}" alt="${escapeHtml(propertyImages[0].alt)}">
-        ${propertyImages.length > 1 ? '<button class="gallery-arrow gallery-prev" type="button" aria-label="Foto anterior"><span aria-hidden="true">←</span></button><button class="gallery-arrow gallery-next" type="button" aria-label="Próxima foto"><span aria-hidden="true">→</span></button>' : ""}
-        <span class="gallery-counter" aria-live="polite">01 <span>/</span> ${String(propertyImages.length).padStart(2, "0")}</span>
+        <span class="gallery-counter" aria-live="polite" aria-atomic="true"><span class="gallery-current">01</span><span class="gallery-separator">/</span><span>${String(propertyImages.length).padStart(2, "0")}</span></span>
       </div>
-      <div class="gallery-thumbnails" aria-label="Fotografias do imóvel">
-        ${propertyImages.map((image, index) => `<button class="gallery-thumb${index === 0 ? " is-active" : ""}" type="button" data-image-index="${index}" aria-label="Exibir foto ${index + 1}: ${escapeHtml(image.alt)}" aria-pressed="${index === 0}"><img src="${escapeHtml(image.src)}" alt="" loading="lazy"></button>`).join("")}
-      </div>
+      ${propertyImages.length > 1 ? '<button class="gallery-arrow gallery-next" type="button" aria-label="Próxima foto"><span aria-hidden="true">→</span></button>' : ""}
     </div>` : "";
 
   target.innerHTML = `
@@ -343,27 +341,16 @@ async function initializeDetailPage() {
 
   if (!propertyImages.length) return;
   const mainImage = target.querySelector("#galleryMainImage");
-  const counter = target.querySelector(".gallery-counter");
+  const currentCounter = target.querySelector(".gallery-current");
   let activeImageIndex = 0;
   const showImage = (index) => {
     activeImageIndex = (index + propertyImages.length) % propertyImages.length;
     mainImage.src = propertyImages[activeImageIndex].src;
     mainImage.alt = propertyImages[activeImageIndex].alt;
-    counter.innerHTML = `${String(activeImageIndex + 1).padStart(2, "0")} <span>/</span> ${String(propertyImages.length).padStart(2, "0")}`;
-    target.querySelectorAll(".gallery-thumb").forEach((thumbnail, thumbnailIndex) => {
-      const active = thumbnailIndex === activeImageIndex;
-      thumbnail.classList.toggle("is-active", active);
-      thumbnail.setAttribute("aria-pressed", String(active));
-    });
+    currentCounter.textContent = String(activeImageIndex + 1).padStart(2, "0");
   };
   target.querySelector(".gallery-prev")?.addEventListener("click", () => showImage(activeImageIndex - 1));
   target.querySelector(".gallery-next")?.addEventListener("click", () => showImage(activeImageIndex + 1));
-  target.querySelectorAll(".gallery-thumb").forEach((button) => {
-    button.addEventListener("click", () => {
-      const index = Number(button.dataset.imageIndex);
-      showImage(index);
-    });
-  });
 }
 
 function initializeNavigation() {

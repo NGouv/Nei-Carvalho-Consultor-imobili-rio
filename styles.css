@@ -119,11 +119,9 @@ button:focus-visible, a:focus-visible, select:focus-visible, .carousel-viewport:
 .photo-arrow { position: absolute; z-index: 2; right: 13px; bottom: 13px; width: 34px; height: 34px; display: grid; place-items: center; color: var(--navy); background: white; font-size: 15px; transition: color .2s ease, background .2s ease; }
 .photo-arrow:focus-visible, .property-bottom a:focus-visible, .interest-link:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
 .property-card:hover .photo-arrow { color: white; background: var(--navy); }
-.gallery-arrow { position: absolute; z-index: 3; top: 50%; width: 34px; height: 38px; padding: 0; display: grid; place-items: center; color: white; border: 1px solid rgba(255,255,255,.52); background: rgba(20,32,51,.72); cursor: pointer; transform: translateY(-50%); transition: background .2s ease, border-color .2s ease; }
+.gallery-arrow { z-index: 3; width: 40px; height: 46px; padding: 0; display: grid; place-items: center; align-self: center; justify-self: center; color: white; border: 1px solid rgba(255,255,255,.52); background: rgba(20,32,51,.72); cursor: pointer; transition: background .2s ease, border-color .2s ease; }
 .gallery-arrow:hover { border-color: white; background: rgba(20,32,51,.95); }
 .gallery-arrow span { font-size: 19px; line-height: 1; }
-.gallery-prev { left: 12px; }
-.gallery-next { right: 12px; }
 .property-body { padding: 19px 19px 15px; }
 .property-type { margin: 0 0 7px; color: #818a95; font-size: 9px; font-weight: 600; letter-spacing: .04em; }
 .property-type span { padding-inline: 3px; color: #b4bac1; }
@@ -228,17 +226,12 @@ button:focus-visible, a:focus-visible, select:focus-visible, .carousel-viewport:
 .detail-price span, .detail-price strong { display: block; }
 .detail-price span { margin-bottom: 4px; color: #858f9a; font-size: 9px; }
 .detail-price strong { color: var(--navy); font-size: 20px; font-weight: 800; }
-.detail-gallery { display: grid; grid-template-columns: minmax(0, 1fr) 120px; gap: 12px; }
-.gallery-main { position: relative; aspect-ratio: 16 / 8.3; min-height: 340px; display: grid; place-items: center; overflow: hidden; background: #e8eaed; }
+.detail-gallery { width: 100%; min-width: 0; display: grid; grid-template-columns: 48px minmax(0, 1fr) 48px; align-items: stretch; gap: 12px; }
+.gallery-main { position: relative; grid-column: 2; min-width: 0; aspect-ratio: 16 / 9; min-height: 340px; display: grid; place-items: center; overflow: hidden; background: #e8eaed; }
 .gallery-main img { width: 100%; height: 100%; object-fit: contain; object-position: center; transition: opacity .2s ease; }
-.gallery-counter { position: absolute; right: 15px; bottom: 15px; padding: 7px 11px; color: white; background: rgba(20,32,51,.78); font-size: 10px; }
-.gallery-counter span { padding-inline: 3px; color: #bfc3c8; }
-.gallery-thumbnails { display: grid; grid-template-rows: repeat(3, 1fr); gap: 10px; }
-.gallery-thumb { padding: 0; overflow: hidden; border: 1px solid transparent; background: #dfe3e7; cursor: pointer; }
-.gallery-thumb img { width: 100%; height: 100%; object-fit: cover; opacity: .7; transition: opacity .2s ease, transform .3s ease; }
-.gallery-thumb:hover img, .gallery-thumb.is-active img { opacity: 1; }
-.gallery-thumb:hover img { transform: scale(1.04); }
-.gallery-thumb.is-active { border-color: var(--navy); }
+.gallery-counter { position: absolute; right: 15px; bottom: 15px; padding: 7px 11px; color: white; background: rgba(20,32,51,.78); font-size: 10px; font-variant-numeric: tabular-nums; }
+.gallery-counter span { padding-inline: 3px; }
+.gallery-counter .gallery-separator { color: #bfc3c8; }
 .detail-layout { margin-top: 50px; display: grid; grid-template-columns: minmax(0, 1fr) 310px; gap: 70px; }
 .detail-specs { padding: 20px 0; display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid #e2e5e9; border-bottom: 1px solid #e2e5e9; }
 .detail-specs > div { padding-left: 17px; border-left: 1px solid #e2e5e9; }
@@ -368,9 +361,9 @@ button:focus-visible, a:focus-visible, select:focus-visible, .carousel-viewport:
   .detail-heading h1 { font-size: clamp(39px, 10vw, 52px); }
   .detail-price { padding: 0; border: 0; }
   .detail-price strong { font-size: 18px; }
-  .detail-gallery { grid-template-columns: 1fr; gap: 9px; }
+  .detail-gallery { grid-template-columns: 34px minmax(0, 1fr) 34px; gap: 6px; }
+  .gallery-arrow { width: 32px; height: 40px; }
   .gallery-main { min-height: 0; aspect-ratio: 4 / 3; }
-  .gallery-thumbnails { grid-template-columns: repeat(3, 1fr); grid-template-rows: 76px; gap: 9px; }
   .detail-layout { margin-top: 32px; grid-template-columns: 1fr; gap: 28px; }
   .detail-specs { grid-template-columns: repeat(4, 1fr); }
   .detail-specs > div { padding-left: 9px; }
