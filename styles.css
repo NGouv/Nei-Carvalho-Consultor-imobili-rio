@@ -228,7 +228,7 @@ button:focus-visible, a:focus-visible, select:focus-visible, .carousel-viewport:
 .detail-price strong { color: var(--navy); font-size: 20px; font-weight: 800; }
 .detail-gallery { width: 100%; min-width: 0; display: grid; grid-template-columns: 48px minmax(0, 1fr) 48px; align-items: stretch; gap: 12px; }
 .gallery-main { position: relative; grid-column: 2; min-width: 0; padding: 16px 32px; aspect-ratio: 16 / 9; min-height: 340px; display: grid; place-items: center; overflow: hidden; background: #e8eaed; }
-.gallery-main img { width: 100%; height: 100%; object-fit: contain; object-position: center; transition: opacity .2s ease; }
+.gallery-main img { display: block; width: 100%; height: 100%; object-fit: contain; object-position: center; transition: opacity .2s ease; }
 .gallery-counter { position: absolute; right: 15px; bottom: 15px; padding: 7px 11px; color: white; background: rgba(20,32,51,.78); font-size: 10px; font-variant-numeric: tabular-nums; }
 .gallery-counter span { padding-inline: 3px; }
 .gallery-counter .gallery-separator { color: #bfc3c8; }
