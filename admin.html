@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#1e2b3f">
+  <title>Painel administrativo | Nei Carvalho</title>
+  <link rel="icon" type="image/png" sizes="128x128" href="assets/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="admin.css">
+  <script type="module" src="admin.js"></script>
+</head>
+<body class="admin-page">
+  <main class="admin-shell">
+    <header class="admin-header">
+      <a class="admin-brand" href="index.html">
+        <img src="assets/logo-trans.png" alt="" width="58" height="58">
+        <span><strong>Nei Carvalho</strong><small>Painel administrativo</small></span>
+      </a>
+      <div class="admin-header-actions" id="adminHeaderActions" hidden>
+        <a class="admin-public-link" href="index.html" target="_blank" rel="noopener noreferrer">Ver site público ↗</a>
+        <button class="admin-button admin-button-quiet" id="signOutButton" type="button">Sair</button>
+      </div>
+    </header>
+
+    <section class="admin-login" id="loginPanel" aria-labelledby="loginTitle">
+      <p class="admin-eyebrow">Acesso restrito</p>
+      <h1 id="loginTitle">Entrar no painel</h1>
+      <p class="admin-intro">Acesse com a conta de administrador cadastrada no Supabase.</p>
+      <form class="admin-form admin-login-form" id="loginForm">
+        <label class="admin-field">
+          <span>E-mail</span>
+          <input name="email" type="email" autocomplete="username" required>
+        </label>
+        <label class="admin-field">
+          <span>Senha</span>
+          <input name="password" type="password" autocomplete="current-password" required>
+        </label>
+        <button class="admin-button admin-button-primary" type="submit">Entrar</button>
+      </form>
+    </section>
+
+    <section class="admin-dashboard" id="dashboardPanel" hidden aria-labelledby="dashboardTitle">
+      <div class="admin-page-heading">
+        <div><p class="admin-eyebrow">Gerenciamento</p><h1 id="dashboardTitle">Imóveis</h1></div>
+        <button class="admin-button admin-button-primary" id="newPropertyButton" type="button">Cadastrar imóvel <span aria-hidden="true">＋</span></button>
+      </div>
+
+      <div class="admin-stats" aria-label="Resumo dos imóveis">
+        <article class="admin-stat"><span>Total de imóveis</span><strong id="totalCount">0</strong></article>
+        <article class="admin-stat"><span>Publicados</span><strong id="publishedCount">0</strong></article>
+        <article class="admin-stat"><span>Em rascunho</span><strong id="draftCount">0</strong></article>
+      </div>
+
+      <section class="admin-list-section" aria-labelledby="listTitle">
+        <div class="admin-list-heading"><h2 id="listTitle">Imóveis cadastrados</h2><p id="listCount"></p></div>
+        <div class="admin-property-list" id="propertyList" aria-live="polite"></div>
+        <p class="admin-empty" id="adminEmpty" hidden>Nenhum imóvel cadastrado. Use “Cadastrar imóvel” para começar.</p>
+      </section>
+
+      <section class="admin-editor" id="propertyEditor" hidden aria-labelledby="editorTitle">
+        <div class="admin-editor-heading"><div><p class="admin-eyebrow">Dados do anúncio</p><h2 id="editorTitle">Cadastrar imóvel</h2></div><button class="admin-button admin-button-quiet" id="closeEditorButton" type="button">Fechar</button></div>
+        <form class="admin-form" id="propertyForm">
+          <input name="id" type="hidden">
+          <div class="admin-form-grid">
+            <label class="admin-field admin-field-wide"><span>Título *</span><input name="title" maxlength="160" required></label>
+            <label class="admin-field"><span>Código ou referência</span><input name="reference" maxlength="40"></label>
+            <label class="admin-field"><span>Tipo de imóvel *</span><select name="property_type" required><option value="">Selecione</option><option>Casa</option><option>Apartamento</option><option>Terreno</option><option>Comercial</option><option>Outro</option></select></label>
+            <label class="admin-field"><span>Finalidade *</span><select name="purpose" required><option value="">Selecione</option><option value="sale">Venda</option><option value="rent">Aluguel</option></select></label>
+            <label class="admin-field"><span>Preço (R$) *</span><input name="price" type="number" min="0.01" step="0.01" required></label>
+            <label class="admin-field"><span>Condomínio (R$)</span><input name="condominium" type="number" min="0" step="0.01"></label>
+            <label class="admin-field"><span>IPTU (R$)</span><input name="iptu" type="number" min="0" step="0.01"></label>
+            <label class="admin-field"><span>Cidade *</span><input name="city" maxlength="100" required></label>
+            <label class="admin-field"><span>Bairro *</span><input name="neighborhood" maxlength="120" required></label>
+            <label class="admin-field admin-field-wide"><span>Endereço</span><input name="address" maxlength="240"></label>
+            <label class="admin-field"><span>Quartos</span><input name="bedrooms" type="number" min="0" step="1" value="0"></label>
+            <label class="admin-field"><span>Suítes</span><input name="suites" type="number" min="0" step="1" value="0"></label>
+            <label class="admin-field"><span>Banheiros</span><input name="bathrooms" type="number" min="0" step="1" value="0"></label>
+            <label class="admin-field"><span>Vagas</span><input name="parking" type="number" min="0" step="1" value="0"></label>
+            <label class="admin-field"><span>Área total (m²)</span><input name="total_area" type="number" min="0" step="0.01"></label>
+            <label class="admin-field"><span>Área construída (m²)</span><input name="built_area" type="number" min="0" step="0.01"></label>
+            <label class="admin-field admin-field-wide"><span>Descrição completa</span><textarea name="description" rows="5" maxlength="10000"></textarea></label>
+            <label class="admin-field admin-field-wide"><span>Características e diferenciais (uma por linha)</span><textarea name="features" rows="4" maxlength="3000"></textarea></label>
+            <label class="admin-field admin-field-wide"><span>Fotografias</span><input id="photoInput" name="photos" type="file" accept="image/jpeg,image/png,image/webp,image/avif" multiple><small>JPG, PNG, WebP ou AVIF; até 8 MB por imagem e 20 imagens por imóvel.</small></label>
+            <div class="admin-photo-previews admin-field-wide" id="photoPreviews" aria-live="polite"></div>
+            <label class="admin-field admin-field-checkbox"><input name="featured" type="checkbox"><span>Destacar este imóvel no catálogo</span></label>
+            <label class="admin-field admin-field-status"><span>Situação</span><select name="status"><option value="draft">Rascunho</option><option value="published">Publicado</option></select></label>
+          </div>
+          <div class="admin-form-actions"><button class="admin-button admin-button-quiet" id="cancelEditorButton" type="button">Cancelar</button><button class="admin-button admin-button-primary" id="savePropertyButton" type="submit">Salvar imóvel</button></div>
+        </form>
+      </section>
+    </section>
+    <p class="admin-feedback" id="adminFeedback" role="status" aria-live="polite"></p>
+  </main>
+</body>
+</html>

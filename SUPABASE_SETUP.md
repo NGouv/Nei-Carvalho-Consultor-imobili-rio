@@ -1,0 +1,57 @@
+# Configuração do painel de imóveis
+
+## 1. Criar e configurar o projeto Supabase
+
+1. Crie um projeto no [Supabase](https://supabase.com/dashboard) e aguarde o banco ficar disponível.
+2. No **SQL Editor**, execute o conteúdo completo de `supabase-schema.sql`. O script cria as tabelas, índices, políticas RLS, bucket privado `property-photos` e publicação Realtime.
+3. Em **Project Settings → API**, copie a Project URL e a chave pública `anon`/publishable. Nunca use `service_role` no site.
+4. Copie `.env.example` para `.env` na raiz do projeto e preencha:
+
+   ```dotenv
+   VITE_SUPABASE_URL=https://seu-projeto.supabase.co
+   VITE_SUPABASE_ANON_KEY=sua-chave-publica-anon
+   ```
+
+   O `.env` está ignorado pelo Git. As variáveis `VITE_` entram no bundle público; somente URL e chave pública do Supabase devem ser usadas.
+
+## 2. Criar a conta administradora
+
+1. Em **Authentication → Sign In / Providers**, habilite o provedor **Email**.
+2. Em **Authentication → Users**, crie o usuário com o e-mail e a senha que serão usados no painel.
+3. Copie o UUID desse usuário.
+4. No **SQL Editor**, permita explicitamente esse usuário no painel:
+
+   ```sql
+   insert into public.admin_users (user_id)
+   values ('UUID-DO-USUARIO-AUTORIZADO');
+   ```
+
+   Não há cadastro público de administradores. Só um UUID adicionado por um operador do projeto recebe acesso administrativo.
+
+## 3. Executar e publicar
+
+```powershell
+npm install
+npm run dev
+```
+
+- Site público: `http://127.0.0.1:5173/`
+- Painel: `http://127.0.0.1:5173/admin.html`
+
+Para publicar, configure as mesmas variáveis `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` no ambiente de build do provedor estático e execute `npm run build`. Publique o conteúdo de `dist/`; não publique o arquivo `.env`.
+
+## 4. Armazenamento e regras
+
+O SQL cria o bucket privado `property-photos`, limitado a imagens JPEG, PNG, WebP e AVIF de até 8 MB. O painel permite até 20 fotos por imóvel. Políticas de Storage restringem upload, alteração e exclusão a usuários listados em `admin_users`. Visitantes recebem URLs assinadas somente para imagens relacionadas a imóveis publicados.
+
+As tabelas `properties`, `property_images` e o bucket aplicam RLS/políticas próprias. A chave pública do navegador não concede acesso administrativo sem uma sessão autenticada e uma linha correspondente em `admin_users`.
+
+## 5. Verificação manual
+
+1. Abra `/admin.html` sem sessão: só o formulário de login deve estar disponível.
+2. Entre com o usuário autorizado, cadastre um imóvel como rascunho e confirme que ele aparece no painel, mas não no catálogo público.
+3. Edite o imóvel, adicione/remova fotos e publique-o; verifique o cartão, filtros, carrossel, detalhes e WhatsApp no site.
+4. Despublique e confirme que o imóvel deixa de aparecer no público; exclua-o e verifique a remoção das fotos.
+5. Teste os mesmos URLs em uma janela anônima: os dados publicados devem ser públicos, mas a administração deve continuar bloqueada.
+
+O catálogo público recebe atualizações em tempo real quando o Realtime está habilitado no projeto; ao retornar à aba, também consulta novamente os dados.
