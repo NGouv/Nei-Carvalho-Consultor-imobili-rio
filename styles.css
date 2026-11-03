@@ -104,16 +104,20 @@ button:focus-visible, a:focus-visible, select:focus-visible, .carousel-viewport:
 .carousel-viewport::-webkit-scrollbar { display: none; }
 .carousel-viewport.is-dragging { cursor: grabbing; scroll-behavior: auto; user-select: none; }
 .property-track { display: flex; align-items: stretch; gap: 24px; }
-.property-card { position: relative; min-width: 0; flex: 0 0 calc((min(1200px, 100vw - 64px) - 48px) / 3); background: white; border: 1px solid #e8eaed; scroll-snap-align: start; transition: transform .3s ease, box-shadow .3s ease; }
+.property-card { position: relative; min-width: 0; flex: 0 0 calc((min(1200px, 100vw - 64px) - 48px) / 3); background: white; border: 1px solid #e8eaed; scroll-snap-align: start; cursor: pointer; transition: transform .3s ease, box-shadow .3s ease; }
 .property-card { animation: card-enter .45s ease both; animation-delay: calc(var(--card-index, 0) * 55ms); }
 .property-card::after { position: absolute; right: 0; bottom: 0; left: 0; height: 1px; background: #aeb8c3; content: ""; transform: scaleX(0); transform-origin: left; transition: transform .35s ease; }
 .property-card:hover { z-index: 1; transform: translateY(-4px); box-shadow: 0 17px 38px rgba(29,43,62,.11); }
 .property-card:hover::after { transform: scaleX(1); }
+.property-card-link { color: inherit; }
+.property-card-link::after { position: absolute; z-index: 1; inset: 0; content: ""; }
+.property-card-link:focus-visible::after { outline: 3px solid var(--blue); outline-offset: -4px; }
 .property-photo { position: relative; aspect-ratio: 4 / 3; display: block; overflow: hidden; background: #dfe3e7; }
 .property-photo img { width: 100%; height: 100%; object-fit: cover; transition: transform .65s cubic-bezier(.2,.7,.2,1); }
 .property-card:hover .property-photo img { transform: scale(1.04); }
 .property-badge { position: absolute; top: 14px; left: 14px; padding: 6px 10px; color: white; background: rgba(30,43,63,.88); font-size: 9px; font-weight: 700; letter-spacing: .08em; }
 .photo-arrow { position: absolute; z-index: 2; right: 13px; bottom: 13px; width: 34px; height: 34px; display: grid; place-items: center; color: var(--navy); background: white; font-size: 15px; transition: color .2s ease, background .2s ease; }
+.photo-arrow:focus-visible, .property-bottom a:focus-visible, .interest-link:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
 .property-card:hover .photo-arrow { color: white; background: var(--navy); }
 .gallery-arrow { position: absolute; z-index: 3; top: 50%; width: 34px; height: 38px; padding: 0; display: grid; place-items: center; color: white; border: 1px solid rgba(255,255,255,.52); background: rgba(20,32,51,.72); cursor: pointer; transform: translateY(-50%); transition: background .2s ease, border-color .2s ease; }
 .gallery-arrow:hover { border-color: white; background: rgba(20,32,51,.95); }
@@ -132,7 +136,10 @@ button:focus-visible, a:focus-visible, select:focus-visible, .carousel-viewport:
 .property-bottom a, .interest-link { color: var(--blue); font-size: 10px; font-weight: 700; }
 .property-bottom a span, .interest-link span { display: inline-block; margin-left: 3px; transition: transform .2s ease; }
 .property-bottom a:hover span, .interest-link:hover span { transform: translateX(3px); }
+.property-bottom a { position: relative; z-index: 2; min-height: 38px; padding: 0 12px; display: inline-flex; align-items: center; gap: 7px; color: white; border: 1px solid var(--navy); background: var(--navy); font-size: 9px; white-space: nowrap; transition: color .2s ease, background .2s ease, border-color .2s ease; }
+.property-bottom a:hover { color: white; border-color: #34445b; background: #34445b; }
 .interest-link { width: max-content; margin-top: 12px; padding-bottom: 3px; display: block; color: #858e99; border-bottom: 1px solid #e3e6e9; }
+.interest-link { position: relative; z-index: 2; }
 .interest-link:hover { color: var(--navy); }
 .carousel-progress { height: 1px; margin-top: 4px; background: #e5e8eb; }
 .carousel-progress span { height: 100%; display: block; background: #8995a2; transition: width .2s ease; }
@@ -144,6 +151,15 @@ button:focus-visible, a:focus-visible, select:focus-visible, .carousel-viewport:
 .empty-results h3 { margin: 5px 0; color: var(--navy); font-family: var(--serif); font-size: 28px; font-weight: 600; }
 .empty-results p { margin: 0; color: #7d8793; font-size: 12px; }
 .text-button { margin-top: 16px; padding: 7px 0; color: var(--navy); border: 0; border-bottom: 1px solid #adb8c3; background: transparent; font-size: 11px; font-weight: 700; cursor: pointer; }
+.properties-section .catalog-viewport { margin-right: 0; padding: 4px 0 0; overflow: visible; scroll-behavior: auto; scroll-snap-type: none; cursor: default; }
+.properties-section .catalog-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: stretch; gap: 24px; }
+.properties-section .catalog-grid .property-card { width: auto; flex: initial; }
+.catalog-pagination { margin-top: 34px; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; }
+.catalog-pagination[hidden] { display: none; }
+.catalog-page-button { min-width: 39px; min-height: 39px; padding: 0 11px; display: inline-flex; align-items: center; justify-content: center; color: var(--navy); border: 1px solid #dfe3e7; background: white; font-size: 10px; font-weight: 700; cursor: pointer; transition: color .2s ease, background .2s ease, border-color .2s ease; }
+.catalog-page-button:hover:not(:disabled), .catalog-page-button[aria-current="page"] { color: white; border-color: var(--navy); background: var(--navy); }
+.catalog-page-button:disabled { color: #adb4bc; cursor: not-allowed; }
+.catalog-page-ellipsis { padding-inline: 3px; color: #828b95; font-size: 11px; }
 
 .about-section { padding: 115px 0; color: white; background: var(--navy); }
 .about-grid { display: grid; grid-template-columns: 1fr .95fr; align-items: center; gap: 110px; }
@@ -213,8 +229,8 @@ button:focus-visible, a:focus-visible, select:focus-visible, .carousel-viewport:
 .detail-price span { margin-bottom: 4px; color: #858f9a; font-size: 9px; }
 .detail-price strong { color: var(--navy); font-size: 20px; font-weight: 800; }
 .detail-gallery { display: grid; grid-template-columns: minmax(0, 1fr) 120px; gap: 12px; }
-.gallery-main { position: relative; aspect-ratio: 16 / 8.3; min-height: 340px; overflow: hidden; background: #dfe3e7; }
-.gallery-main img { width: 100%; height: 100%; object-fit: cover; transition: opacity .2s ease; }
+.gallery-main { position: relative; aspect-ratio: 16 / 8.3; min-height: 340px; display: grid; place-items: center; overflow: hidden; background: #e8eaed; }
+.gallery-main img { width: 100%; height: 100%; object-fit: contain; object-position: center; transition: opacity .2s ease; }
 .gallery-counter { position: absolute; right: 15px; bottom: 15px; padding: 7px 11px; color: white; background: rgba(20,32,51,.78); font-size: 10px; }
 .gallery-counter span { padding-inline: 3px; color: #bfc3c8; }
 .gallery-thumbnails { display: grid; grid-template-rows: repeat(3, 1fr); gap: 10px; }
@@ -274,6 +290,7 @@ button:focus-visible, a:focus-visible, select:focus-visible, .carousel-viewport:
   .property-card { flex-basis: calc((100vw - 96px) / 2.2); }
   .about-grid { gap: 55px; }
   .detail-layout { gap: 38px; }
+  .properties-section .catalog-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 720px) {
   html { scroll-padding-top: 76px; }
@@ -376,6 +393,11 @@ button:focus-visible, a:focus-visible, select:focus-visible, .carousel-viewport:
   .detail-specs { grid-template-columns: repeat(2, 1fr); gap: 15px 0; }
   .detail-specs > div:nth-child(3) { padding-left: 0; border-left: 0; }
   .detail-features ul { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) {
+  .properties-section .catalog-grid { grid-template-columns: 1fr; }
+  .catalog-pagination { gap: 5px; }
+  .catalog-page-button { min-width: 35px; min-height: 36px; padding-inline: 8px; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }

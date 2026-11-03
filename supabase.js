@@ -26,7 +26,10 @@ export async function signImageUrls(images = []) {
       id: image.id,
       storage_path: image.storage_path,
       src: data.signedUrl,
-      alt: image.alt_text || ""
+      alt: image.alt_text || "",
+      alt_text: image.alt_text || "",
+      display_order: image.display_order ?? 0,
+      is_primary: Boolean(image.is_primary)
     };
   }));
 }
@@ -42,10 +45,14 @@ export async function fetchPublishedProperties() {
     .order("display_order", { referencedTable: "property_images", ascending: true });
   if (error) throw error;
 
-  return Promise.all(data.map(async (property) => ({
-    ...property,
-    images: await signImageUrls(property.property_images || [])
-  })));
+  return Promise.all(data.map(async (property) => {
+    const images = await signImageUrls(property.property_images || []);
+    return {
+      ...property,
+      images: images.sort((left, right) => Number(right.is_primary) - Number(left.is_primary)
+        || left.display_order - right.display_order)
+    };
+  }));
 }
 
 export async function fetchPublishedProperty(id) {
@@ -61,9 +68,11 @@ export async function fetchPublishedProperty(id) {
   if (error) throw error;
   if (!data) return null;
 
+  const images = await signImageUrls(data.property_images || []);
   return {
     ...data,
-    images: await signImageUrls(data.property_images || [])
+    images: images.sort((left, right) => Number(right.is_primary) - Number(left.is_primary)
+      || left.display_order - right.display_order)
   };
 }
 

@@ -36,6 +36,7 @@ let properties = [];
 let existingPhotos = [];
 let removedPhotos = [];
 let selectedPhotos = [];
+let primaryImageKey = "";
 let feedbackTimeout;
 
 function showFeedback(message, kind = "info", duration = 6000) {
@@ -62,15 +63,17 @@ function revokeSelectedPreviews() {
 
 function renderPhotoPreviews() {
   const existing = existingPhotos.map((photo) => `
-    <article class="admin-photo-item">
+    <article class="admin-photo-item${primaryImageKey === photo.id ? " is-primary" : ""}">
       <img src="${escapeHtml(photo.src)}" alt="${escapeHtml(photo.alt_text || "Foto do imóvel")}" loading="lazy">
       <span>${escapeHtml(photo.fileName || "Fotografia cadastrada")}</span>
+      <label class="admin-primary-choice"><input type="radio" name="primaryPhoto" value="${escapeHtml(photo.id)}"${primaryImageKey === photo.id ? " checked" : ""}> Imagem principal</label>
       <button type="button" data-remove-existing="${escapeHtml(photo.id)}" aria-label="Remover fotografia cadastrada">×</button>
     </article>`).join("");
   const selected = selectedPhotos.map((photo, index) => `
-    <article class="admin-photo-item">
+    <article class="admin-photo-item${primaryImageKey === photo.key ? " is-primary" : ""}">
       <img src="${escapeHtml(photo.preview)}" alt="${escapeHtml(photo.file.name)}">
       <span>${escapeHtml(photo.file.name)}</span>
+      <label class="admin-primary-choice"><input type="radio" name="primaryPhoto" value="${escapeHtml(photo.key)}"${primaryImageKey === photo.key ? " checked" : ""}> Imagem principal</label>
       <button type="button" data-remove-selected="${index}" aria-label="Remover ${escapeHtml(photo.file.name)}">×</button>
     </article>`).join("");
   elements.photoPreviews.innerHTML = existing + selected;
@@ -92,6 +95,7 @@ function resetEditor() {
   elements.photoInput.value = "";
   existingPhotos = [];
   removedPhotos = [];
+  primaryImageKey = "";
   revokeSelectedPreviews();
   renderPhotoPreviews();
 }
@@ -159,7 +163,7 @@ async function uploadSelectedPhotos(propertyId) {
       const cleanupMessage = cleanup.error ? ` Também não foi possível limpar os uploads incompletos: ${cleanup.error.message}` : "";
       throw new Error(`Falha ao enviar ${file.name}: ${error.message}.${cleanupMessage}`);
     }
-    uploaded.push({ property_id: propertyId, storage_path: path, alt_text: file.name, display_order: existingPhotos.length + uploaded.length });
+    uploaded.push({ key: selectedPhotos[uploaded.length].key, property_id: propertyId, storage_path: path, alt_text: file.name, display_order: existingPhotos.length + uploaded.length, is_primary: false });
   }
   return uploaded;
 }
@@ -169,6 +173,7 @@ async function saveProperty(event) {
   if (!elements.form.reportValidity()) return;
 
   let uploadedPhotos = [];
+  let newPrimaryImageId = "";
   setBusy(elements.saveButton, true, "Salvando…");
   try {
     validatePhotos();
@@ -196,8 +201,14 @@ async function saveProperty(event) {
     uploadedPhotos = await uploadSelectedPhotos(propertyId);
 
     if (uploadedPhotos.length) {
-      const { error } = await supabase.from("property_images").insert(uploadedPhotos);
+      const { data: insertedImages, error } = await supabase
+        .from("property_images")
+        .insert(uploadedPhotos.map(({ key, ...image }) => image))
+        .select("id, storage_path");
       if (error) throw new Error(`Falha ao associar as fotografias ao imóvel: ${error.message}`);
+      const selectedNewImage = insertedImages.find((image) =>
+        uploadedPhotos.find((upload) => upload.storage_path === image.storage_path)?.key === primaryImageKey);
+      if (selectedNewImage) newPrimaryImageId = selectedNewImage.id;
       uploadedPhotos = [];
     }
 
@@ -206,6 +217,14 @@ async function saveProperty(event) {
       if (deleteError) throw deleteError;
       const { error } = await supabase.storage.from("property-photos").remove(removedPhotos.map((photo) => photo.storage_path));
       if (error) throw new Error(`Imóvel salvo, mas não foi possível excluir algumas fotografias antigas: ${error.message}`);
+    }
+
+    const selectedPrimaryImageId = newPrimaryImageId || (
+      existingPhotos.some((photo) => photo.id === primaryImageKey) ? primaryImageKey : ""
+    );
+    if (selectedPrimaryImageId) {
+      const { error } = await supabase.rpc("set_primary_property_image", { p_image_id: selectedPrimaryImageId });
+      if (error) throw new Error(`Imóvel salvo, mas não foi possível definir a imagem principal: ${error.message}`);
     }
 
     const { error: statusError } = await supabase
@@ -261,6 +280,7 @@ async function openEditProperty(id) {
       fileName: photo.storage_path.split("/").pop(),
       display_order: index
     }));
+    primaryImageKey = existingPhotos.find((photo) => photo.is_primary)?.id || existingPhotos[0]?.id || "";
     renderPhotoPreviews();
     setEditorOpen(true);
     fields.title.focus({ preventScroll: true });
@@ -276,7 +296,7 @@ function renderProperties() {
   elements.listCount.textContent = `${properties.length} ${properties.length === 1 ? "imóvel" : "imóveis"}`;
   elements.empty.hidden = properties.length !== 0;
   elements.list.innerHTML = properties.map((property) => {
-    const image = property.property_images?.[0];
+    const image = property.property_images?.find((photo) => photo.is_primary) || property.property_images?.[0];
     const signed = property.signedImages?.find((photo) => photo.id === image?.id);
     const location = [property.neighborhood, property.city].filter(Boolean).join(", ");
     const price = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(property.price);
@@ -427,7 +447,11 @@ function initializePhotoPicker() {
       showFeedback(error.message, "error");
       return;
     }
-    newFiles.forEach((file) => selectedPhotos.push({ file, preview: URL.createObjectURL(file) }));
+    newFiles.forEach((file) => {
+      const photo = { key: crypto.randomUUID(), file, preview: URL.createObjectURL(file) };
+      selectedPhotos.push(photo);
+      if (!primaryImageKey) primaryImageKey = photo.key;
+    });
     elements.photoInput.value = "";
     renderPhotoPreviews();
   });
@@ -438,6 +462,9 @@ function initializePhotoPicker() {
       const photo = existingPhotos.find((item) => item.id === removeExisting.dataset.removeExisting);
       if (photo) removedPhotos.push(photo);
       existingPhotos = existingPhotos.filter((item) => item.id !== removeExisting.dataset.removeExisting);
+      if (primaryImageKey === removeExisting.dataset.removeExisting) {
+        primaryImageKey = existingPhotos[0]?.id || selectedPhotos[0]?.key || "";
+      }
       renderPhotoPreviews();
       return;
     }
@@ -445,6 +472,13 @@ function initializePhotoPicker() {
     if (!removeSelected) return;
     const [photo] = selectedPhotos.splice(Number(removeSelected.dataset.removeSelected), 1);
     if (photo) URL.revokeObjectURL(photo.preview);
+    if (photo?.key === primaryImageKey) primaryImageKey = existingPhotos[0]?.id || selectedPhotos[0]?.key || "";
+    renderPhotoPreviews();
+  });
+  elements.photoPreviews.addEventListener("change", (event) => {
+    const primaryChoice = event.target.closest('input[name="primaryPhoto"]');
+    if (!primaryChoice) return;
+    primaryImageKey = primaryChoice.value;
     renderPhotoPreviews();
   });
 }

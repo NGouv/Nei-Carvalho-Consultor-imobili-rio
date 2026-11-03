@@ -37,6 +37,7 @@ create table if not exists public.property_images (
   storage_path text not null unique,
   alt_text text not null default '',
   display_order integer not null default 0,
+  is_primary boolean not null default false,
   created_at timestamptz not null default now()
 );
 
@@ -44,6 +45,9 @@ create index if not exists properties_status_created_at_idx
   on public.properties (status, created_at desc);
 create index if not exists property_images_property_order_idx
   on public.property_images (property_id, display_order);
+create unique index if not exists property_images_one_primary_per_property_idx
+  on public.property_images (property_id)
+  where is_primary;
 
 grant select on public.admin_users to authenticated;
 grant select on public.properties, public.property_images to anon, authenticated;
@@ -64,6 +68,66 @@ drop trigger if exists set_properties_updated_at on public.properties;
 create trigger set_properties_updated_at
   before update on public.properties
   for each row execute function public.set_property_updated_at();
+
+create or replace function public.set_primary_property_image(p_image_id uuid)
+returns void
+language plpgsql
+set search_path = ''
+as $$
+declare
+  target_property_id uuid;
+begin
+  if not (select public.is_property_admin()) then
+    raise exception 'Acesso administrativo necessário.';
+  end if;
+
+  select property_id into target_property_id
+  from public.property_images
+  where id = p_image_id;
+
+  if target_property_id is null then
+    raise exception 'Fotografia não encontrada.';
+  end if;
+
+  update public.property_images
+  set is_primary = false
+  where property_id = target_property_id and is_primary;
+
+  update public.property_images
+  set is_primary = true
+  where id = p_image_id;
+end;
+$$;
+
+revoke all on function public.set_primary_property_image(uuid) from public;
+grant execute on function public.set_primary_property_image(uuid) to authenticated;
+
+create or replace function public.select_replacement_primary_property_image()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if old.is_primary then
+    update public.property_images
+    set is_primary = true
+    where id = (
+      select id
+      from public.property_images
+      where property_id = old.property_id
+      order by display_order, created_at, id
+      limit 1
+    );
+  end if;
+  return old;
+end;
+$$;
+
+drop trigger if exists replace_primary_property_image_after_delete on public.property_images;
+create trigger replace_primary_property_image_after_delete
+  after delete on public.property_images
+  for each row execute function public.select_replacement_primary_property_image();
 
 create or replace function public.is_property_admin()
 returns boolean

@@ -3,7 +3,8 @@
 ## 1. Criar e configurar o projeto Supabase
 
 1. Crie um projeto no [Supabase](https://supabase.com/dashboard) e aguarde o banco ficar disponível.
-2. No **SQL Editor**, execute o conteúdo completo de `supabase-schema.sql`. O script cria as tabelas, índices, políticas RLS, bucket privado `property-photos` e publicação Realtime.
+2. No **SQL Editor**, execute o conteúdo completo de `supabase-schema.sql` em uma instalação nova. Ele cria as tabelas, índices, políticas RLS, bucket privado `property-photos` e publicação Realtime.
+   - Se o projeto já usa o esquema anterior deste site, mantenha os dados e execute somente `supabase-migration-primary-image.sql` para adicionar com segurança a seleção da foto principal e a substituição automática ao excluir a capa.
 3. Em **Project Settings → API**, copie a Project URL e a chave pública `anon`/publishable. Nunca use `service_role` no site.
 4. Copie `.env.example` para `.env` na raiz do projeto e preencha:
 

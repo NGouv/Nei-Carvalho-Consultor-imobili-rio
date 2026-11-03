@@ -84,7 +84,7 @@
             <label class="admin-field admin-field-wide"><span>Descrição completa</span><textarea name="description" rows="5" maxlength="10000"></textarea></label>
             <label class="admin-field admin-field-wide"><span>Características e diferenciais (uma por linha)</span><textarea name="features" rows="4" maxlength="3000"></textarea></label>
             <label class="admin-field admin-field-wide"><span>Fotografias</span><input id="photoInput" name="photos" type="file" accept="image/jpeg,image/png,image/webp,image/avif" multiple><small>JPG, PNG, WebP ou AVIF; até 8 MB por imagem e 20 imagens por imóvel.</small></label>
-            <div class="admin-photo-previews admin-field-wide" id="photoPreviews" aria-live="polite"></div>
+            <div class="admin-photo-previews admin-field-wide" id="photoPreviews" role="group" aria-label="Fotografias do imóvel. Escolha uma como imagem principal."></div>
             <label class="admin-field admin-field-checkbox"><input name="featured" type="checkbox"><span>Destacar este imóvel no catálogo</span></label>
             <label class="admin-field admin-field-status"><span>Situação</span><select name="status"><option value="draft">Rascunho</option><option value="published">Publicado</option></select></label>
           </div>

@@ -41,19 +41,20 @@ function propertyCard(property, index) {
     ? `<span>${property.area ? `${escapeHtml(property.area)} m²` : "Área não informada"}</span><span>Condomínio</span>`
     : `<span>${property.bedrooms || "—"} quartos</span><span>${property.bathrooms || "—"} banheiros</span><span>${property.parking || "—"} vagas</span>${property.area ? `<span>${escapeHtml(property.area)} m²</span>` : ""}`;
   const image = property.images[0];
+  const detailUrl = `imovel.html?id=${encodeURIComponent(property.id)}`;
   return `
     <article class="property-card reveal is-visible" style="--card-index:${index}">
       <div class="property-photo">
         ${image ? `<img src="${escapeHtml(image.src)}" alt="${escapeHtml(image.alt)}" loading="lazy">` : ""}
         ${property.featured ? '<span class="property-badge">Destaque</span>' : ""}
-        <a class="photo-arrow" href="imovel.html?id=${encodeURIComponent(property.id)}" aria-label="Ver ${escapeHtml(property.title)}">↗</a>
+        <a class="photo-arrow" href="${detailUrl}" aria-label="Ver ${escapeHtml(property.title)}">↗</a>
       </div>
       <div class="property-body">
         <p class="property-type">${escapeHtml(property.type)} <span>·</span> ${escapeHtml(property.neighborhood)}</p>
-        <h3>${escapeHtml(property.title)}</h3>
+        <h3><a class="property-card-link" href="${detailUrl}" aria-label="Ver detalhes de ${escapeHtml(property.title)}">${escapeHtml(property.title)}</a></h3>
         <p class="property-location"><span aria-hidden="true">⌖</span> ${escapeHtml(property.city)}</p>
         <div class="property-specs">${roomSpecs}</div>
-        <div class="property-bottom"><strong>${formatPrice(property.price, property)}</strong><a href="imovel.html?id=${encodeURIComponent(property.id)}">Ver imóvel <span aria-hidden="true">→</span></a></div>
+        <div class="property-bottom"><strong>${formatPrice(property.price, property)}</strong><a href="${detailUrl}">Ver imóvel <span aria-hidden="true">→</span></a></div>
         <a class="interest-link" href="${whatsappUrl(property)}" target="_blank" rel="noopener noreferrer">Tenho interesse <span aria-hidden="true">↗</span></a>
       </div>
     </article>`;
@@ -88,13 +89,13 @@ function initializeCatalog() {
   const typeFilter = document.querySelector("#typeFilter");
   const priceFilter = document.querySelector("#priceFilter");
   const purposeFilter = document.querySelector("#purposeFilter");
-  const previous = document.querySelector("#carouselPrev");
-  const next = document.querySelector("#carouselNext");
+  const pagination = document.querySelector("#catalogPagination");
   const emptyResults = document.querySelector("#emptyResults");
   const emptyTitle = document.querySelector("#emptyResultsTitle");
   const emptyMessage = document.querySelector("#emptyResultsMessage");
-  const progress = document.querySelector("#carouselProgress");
   const clearFilters = document.querySelector("#clearFilters");
+  const pageSize = 9;
+  let currentPage = 1;
   const defaultPriceOptions = [
     { value: "todos", label: "Qualquer valor" },
     { value: "ate800", label: "Até R$ 800 mil" },
@@ -123,14 +124,40 @@ function initializeCatalog() {
     if (options.some((option) => option.value === selected)) priceFilter.value = selected;
   };
 
-  const updateControls = () => {
-    const maxScroll = Math.max(0, viewport.scrollWidth - viewport.clientWidth);
-    previous.disabled = viewport.scrollLeft <= 2;
-    next.disabled = viewport.scrollLeft >= maxScroll - 2;
-    progress.style.width = `${maxScroll ? (viewport.scrollLeft / maxScroll) * 100 : 100}%`;
+  const renderPagination = (totalPages) => {
+    if (!totalPages) {
+      pagination.hidden = true;
+      pagination.replaceChildren();
+      return;
+    }
+
+    const pages = totalPages <= 7
+      ? Array.from({ length: totalPages }, (_, index) => index + 1)
+      : [
+          1,
+          ...(currentPage > 3 ? ["ellipsis-start"] : []),
+          ...Array.from(
+            { length: Math.min(totalPages - 1, currentPage + 1) - Math.max(2, currentPage - 1) + 1 },
+            (_, index) => Math.max(2, currentPage - 1) + index
+          ),
+          ...(currentPage < totalPages - 2 ? ["ellipsis-end"] : []),
+          totalPages
+        ];
+    const pageButton = (label, page, disabled = false, current = false, ariaLabel = label) => `
+      <button class="catalog-page-button" type="button" data-page="${page}"
+        aria-label="${escapeHtml(ariaLabel)}"${current ? ' aria-current="page"' : ""}${disabled ? " disabled" : ""}>${escapeHtml(label)}</button>`;
+
+    pagination.innerHTML = [
+      pageButton("Anterior", currentPage - 1, currentPage === 1, false, "Página anterior"),
+      ...pages.map((page) => typeof page === "number"
+        ? pageButton(String(page), page, false, page === currentPage, `Página ${page}`)
+        : '<span class="catalog-page-ellipsis" aria-hidden="true">…</span>'),
+      pageButton("Próxima", currentPage + 1, currentPage === totalPages, false, "Próxima página")
+    ].join("");
+    pagination.hidden = false;
   };
 
-  const applyFilters = () => {
+  const applyFilters = (resetPage = true) => {
     const type = typeFilter.value;
     const range = priceFilter.value;
     const filtered = properties.filter((property) => {
@@ -141,12 +168,13 @@ function initializeCatalog() {
       const matchesPurpose = purpose === "todos" || property.purpose === purpose;
       return matchesType && matchesPriceRange(property.price, range, property.purpose) && matchesPurpose;
     });
-    track.innerHTML = filtered.map(propertyCard).join("");
-    viewport.scrollTo({ left: 0, behavior: "smooth" });
+    const totalPages = Math.ceil(filtered.length / pageSize);
+    if (resetPage) currentPage = 1;
+    else currentPage = Math.min(currentPage, Math.max(totalPages, 1));
+    const start = (currentPage - 1) * pageSize;
+    track.innerHTML = filtered.slice(start, start + pageSize).map(propertyCard).join("");
     viewport.hidden = filtered.length === 0;
-    document.querySelector(".carousel-controls").hidden = filtered.length === 0;
-    document.querySelector(".carousel-progress").hidden = filtered.length === 0;
-    document.querySelector(".carousel-hint").hidden = filtered.length === 0;
+    renderPagination(totalPages);
     emptyResults.hidden = filtered.length !== 0;
     if (!filtered.length && !catalogLoadError) {
       emptyTitle.textContent = properties.length
@@ -158,7 +186,6 @@ function initializeCatalog() {
       clearFilters.hidden = properties.length === 0;
       clearFilters.textContent = "Limpar filtros →";
     }
-    updateControls();
   };
 
   let catalogLoadError = false;
@@ -167,20 +194,17 @@ function initializeCatalog() {
       const loaded = await fetchPublishedProperties();
       properties = loaded.map(adaptProperty);
       catalogLoadError = false;
-      applyFilters();
+      applyFilters(false);
     } catch (error) {
       catalogLoadError = true;
       track.replaceChildren();
       viewport.hidden = true;
-      document.querySelector(".carousel-controls").hidden = true;
-      document.querySelector(".carousel-progress").hidden = true;
-      document.querySelector(".carousel-hint").hidden = true;
+      pagination.hidden = true;
       emptyTitle.textContent = "Não foi possível carregar os imóveis.";
       emptyMessage.textContent = `${error.message} Verifique a configuração e tente novamente.`;
       clearFilters.hidden = false;
       clearFilters.textContent = "Tentar novamente →";
       emptyResults.hidden = false;
-      updateControls();
     }
   };
 
@@ -206,33 +230,13 @@ function initializeCatalog() {
     updatePriceOptions();
     applyFilters();
   });
-  previous.addEventListener("click", () => {
-    const card = track.querySelector(".property-card");
-    viewport.scrollBy({ left: -(card ? card.getBoundingClientRect().width + 24 : viewport.clientWidth), behavior: "smooth" });
+  pagination.addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-page]");
+    if (!button || button.disabled) return;
+    currentPage = Number(button.dataset.page);
+    applyFilters(false);
+    document.querySelector("#imoveis").scrollIntoView({ behavior: "smooth", block: "start" });
   });
-  next.addEventListener("click", () => {
-    const card = track.querySelector(".property-card");
-    viewport.scrollBy({ left: card ? card.getBoundingClientRect().width + 24 : viewport.clientWidth, behavior: "smooth" });
-  });
-  viewport.addEventListener("scroll", updateControls, { passive: true });
-
-  let pointerStart = null;
-  viewport.addEventListener("pointerdown", (event) => {
-    if (event.pointerType !== "mouse" || event.target.closest("a, button")) return;
-    pointerStart = { x: event.clientX, scrollLeft: viewport.scrollLeft };
-    viewport.classList.add("is-dragging");
-    viewport.setPointerCapture(event.pointerId);
-  });
-  viewport.addEventListener("pointermove", (event) => {
-    if (!pointerStart) return;
-    viewport.scrollLeft = pointerStart.scrollLeft - (event.clientX - pointerStart.x);
-  });
-  const stopDragging = () => {
-    pointerStart = null;
-    viewport.classList.remove("is-dragging");
-  };
-  viewport.addEventListener("pointerup", stopDragging);
-  viewport.addEventListener("pointercancel", stopDragging);
 
   void refreshProperties();
   if (supabase) {

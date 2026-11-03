@@ -101,25 +101,17 @@
             <p class="eyebrow eyebrow-dark"><span class="eyebrow-mark"></span> Oportunidades selecionadas</p>
             <h2 id="propertiesTitle">Imóveis selecionados<br>para <em>você.</em></h2>
           </div>
-          <div class="carousel-controls" hidden>
-            <p>Encontre um lugar que combina com o seu próximo capítulo.</p>
-            <div class="carousel-buttons">
-              <button class="carousel-arrow" id="carouselPrev" type="button" aria-label="Ver imóveis anteriores" disabled><span aria-hidden="true">←</span></button>
-              <button class="carousel-arrow" id="carouselNext" type="button" aria-label="Ver próximos imóveis"><span aria-hidden="true">→</span></button>
-            </div>
-          </div>
         </div>
-        <div class="carousel-viewport" id="carouselViewport" hidden tabindex="0" aria-label="Carrossel de imóveis. Use as setas do teclado para navegar.">
-          <div class="property-track" id="propertyTrack"></div>
+        <div class="carousel-viewport catalog-viewport" id="carouselViewport" hidden>
+          <div class="property-track catalog-grid" id="propertyTrack"></div>
         </div>
+        <nav class="catalog-pagination" id="catalogPagination" aria-label="Paginação dos imóveis" hidden></nav>
         <div class="empty-results" id="emptyResults">
           <span class="empty-icon" aria-hidden="true">⌕</span>
           <h3 id="emptyResultsTitle">Nenhum imóvel disponível no momento.</h3>
           <p id="emptyResultsMessage">Novas opções poderão ser publicadas em breve.</p>
           <button class="text-button" id="clearFilters" type="button">Limpar filtros <span aria-hidden="true">→</span></button>
         </div>
-        <div class="carousel-progress" hidden aria-hidden="true"><span id="carouselProgress"></span></div>
-        <p class="carousel-hint" hidden><span aria-hidden="true">↔</span> Deslize para explorar mais imóveis</p>
       </div>
     </section>
 
