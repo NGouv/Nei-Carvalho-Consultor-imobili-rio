@@ -332,6 +332,72 @@ function initializeCatalog() {
   }
 }
 
+let instagramEmbedScriptPromise;
+
+function loadInstagramEmbedScript() {
+  if (window.instgrm?.Embeds?.process) return Promise.resolve();
+  if (instagramEmbedScriptPromise) return instagramEmbedScriptPromise;
+
+  instagramEmbedScriptPromise = new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "https://www.instagram.com/embed.js";
+    script.async = true;
+    script.dataset.instagramEmbedScript = "true";
+    script.addEventListener("load", resolve, { once: true });
+    script.addEventListener("error", () => reject(new Error("O script de incorporação do Instagram não carregou.")), { once: true });
+    document.head.append(script);
+  });
+  return instagramEmbedScriptPromise;
+}
+
+function initializePropertyVideo(target, video) {
+  const validatedVideo = parsePropertyVideoUrl(video.url);
+  if (!validatedVideo || validatedVideo.platform !== video.platform) return;
+
+  const frame = target.querySelector("[data-property-video-frame]");
+  const fallback = target.querySelector("[data-property-video-fallback]");
+  const fallbackLink = target.querySelector("[data-property-video-link]");
+  if (!frame || !fallback || !fallbackLink) return;
+
+  frame.dataset.platform = validatedVideo.platform;
+  const showFallback = () => {
+    fallbackLink.href = validatedVideo.url;
+    fallback.hidden = false;
+  };
+
+  if (validatedVideo.platform === "youtube") {
+    const iframe = document.createElement("iframe");
+    iframe.title = "Vídeo de apresentação do imóvel no YouTube";
+    iframe.src = validatedVideo.embedUrl;
+    iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
+    iframe.allowFullscreen = true;
+    iframe.referrerPolicy = "strict-origin-when-cross-origin";
+    iframe.loading = "lazy";
+    iframe.addEventListener("error", showFallback, { once: true });
+    frame.append(iframe);
+    return;
+  }
+
+  const post = document.createElement("blockquote");
+  post.className = "instagram-media";
+  post.setAttribute("data-instgrm-permalink", validatedVideo.url);
+  post.setAttribute("data-instgrm-version", "14");
+  const postLink = document.createElement("a");
+  postLink.href = validatedVideo.url;
+  postLink.target = "_blank";
+  postLink.rel = "noopener noreferrer";
+  postLink.textContent = "Ver publicação no Instagram";
+  post.append(postLink);
+  frame.append(post);
+
+  void loadInstagramEmbedScript().then(() => {
+    window.instgrm?.Embeds?.process();
+    window.setTimeout(() => {
+      if (!frame.querySelector("iframe")) showFallback();
+    }, 10000);
+  }).catch(showFallback);
+}
+
 async function initializeDetailPage() {
   const target = document.querySelector("#detailContent");
   if (!target) return;
@@ -520,64 +586,6 @@ async function initializeDetailPage() {
       } else if (event.key === "Escape") {
         event.preventDefault();
         lightbox.close();
-      }
-
-      let instagramEmbedScriptPromise;
-
-      function loadInstagramEmbedScript() {
-        if (window.instgrm?.Embeds?.process) return Promise.resolve();
-        if (instagramEmbedScriptPromise) return instagramEmbedScriptPromise;
-
-        instagramEmbedScriptPromise = new Promise((resolve, reject) => {
-          const script = document.createElement("script");
-          script.src = "https://www.instagram.com/embed.js";
-          script.async = true;
-          script.dataset.instagramEmbedScript = "true";
-          script.addEventListener("load", resolve, { once: true });
-          script.addEventListener("error", () => reject(new Error("O script de incorporação do Instagram não carregou.")), { once: true });
-          document.head.append(script);
-        });
-        return instagramEmbedScriptPromise;
-      }
-
-      function initializePropertyVideo(target, video) {
-        const validatedVideo = parsePropertyVideoUrl(video.url);
-        if (!validatedVideo || validatedVideo.platform !== video.platform) return;
-
-        const frame = target.querySelector("[data-property-video-frame]");
-        const fallback = target.querySelector("[data-property-video-fallback]");
-        const fallbackLink = target.querySelector("[data-property-video-link]");
-        frame.dataset.platform = validatedVideo.platform;
-        const showFallback = () => {
-          fallbackLink.href = validatedVideo.url;
-          fallback.hidden = false;
-        };
-
-        if (validatedVideo.platform === "youtube") {
-          const iframe = document.createElement("iframe");
-          iframe.title = "Vídeo de apresentação do imóvel no YouTube";
-          iframe.src = validatedVideo.embedUrl;
-          iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
-          iframe.allowFullscreen = true;
-          iframe.referrerPolicy = "strict-origin-when-cross-origin";
-          iframe.loading = "lazy";
-          iframe.addEventListener("error", showFallback, { once: true });
-          frame.append(iframe);
-          return;
-        }
-
-        const post = document.createElement("blockquote");
-        post.className = "instagram-media";
-        post.setAttribute("data-instgrm-permalink", validatedVideo.url);
-        post.setAttribute("data-instgrm-version", "14");
-        frame.append(post);
-
-        void loadInstagramEmbedScript().then(() => {
-          window.instgrm?.Embeds?.process();
-          window.setTimeout(() => {
-            if (!frame.querySelector("iframe")) showFallback();
-          }, 10000);
-        }).catch(showFallback);
       }
     });
   }
