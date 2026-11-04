@@ -1,4 +1,5 @@
 import { escapeHtml, fetchPublishedProperties, fetchPublishedProperty, supabase } from "./supabase.js";
+import { extractPropertyVideo, parsePropertyVideoUrl } from "./video.js";
 
 let properties = [];
 
@@ -32,6 +33,7 @@ function whatsappUrl(property, request = "") {
 }
 
 function adaptProperty(property) {
+  const propertyContent = extractPropertyVideo(property.features);
   return {
     ...property,
     type: property.property_type,
@@ -41,8 +43,9 @@ function adaptProperty(property) {
     bathrooms: property.bathrooms,
     parking: property.parking,
     area: property.total_area,
-    features: property.features || [],
-    images: property.images || []
+    features: propertyContent.features,
+    images: property.images || [],
+    video: propertyContent.video
   };
 }
 
@@ -91,6 +94,7 @@ function propertyCard(property, index) {
         <div class="property-photo-badges">
           ${property.featured ? '<span class="property-badge property-featured-badge">Destaque</span>' : ""}
           <span class="property-badge property-purpose-badge">${purposeLabel}</span>
+          ${property.video ? '<span class="property-badge property-video-badge" aria-label="Vídeo de apresentação disponível"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m5 3 8 5-8 5V3Z"/></svg><span>Vídeo</span></span>' : ""}
         </div>
         <button class="property-favorite${favoritePropertyIds.has(String(property.id)) ? " is-favorite" : ""}" type="button"
           data-property-favorite="${escapeHtml(String(property.id))}"
@@ -393,6 +397,14 @@ async function initializeDetailPage() {
     hasValue(property.address) && ["Endereço", property.address]
   ].filter(Boolean);
   const propertyImages = property.images || [];
+  const videoSection = property.video ? `
+    <section class="detail-video-section" aria-labelledby="detailVideoTitle">
+      <div class="detail-video-heading"><span class="detail-video-mark" aria-hidden="true"></span><h2 id="detailVideoTitle">Conheça este imóvel em vídeo</h2></div>
+      <div class="detail-video-card">
+        <div class="detail-video-frame" data-property-video-frame></div>
+        <p class="detail-video-fallback" data-property-video-fallback hidden>Não foi possível exibir a incorporação. <a data-property-video-link target="_blank" rel="noopener noreferrer">Assista diretamente na plataforma</a>.</p>
+      </div>
+    </section>` : "";
   const gallery = propertyImages.length ? `
     <section class="detail-gallery" aria-label="Galeria de fotos do imóvel">
       <div class="detail-gallery-grid" data-photo-count="${Math.min(propertyImages.length, 4)}">
@@ -437,6 +449,7 @@ async function initializeDetailPage() {
       </div>
     </div>
     ${gallery}
+    ${videoSection}
     <div class="detail-layout">
       <div class="detail-information">
         <div class="detail-specs" aria-label="Características do imóvel">${specs}</div>
@@ -456,6 +469,8 @@ async function initializeDetailPage() {
       <div><span>PREÇO</span><strong>${formatPrice(property.price, property)}</strong></div>
       <a href="${whatsappIntent}" target="_blank" rel="noopener noreferrer"><span aria-hidden="true">◉</span> WhatsApp</a>
     </div>`;
+
+  if (property.video) initializePropertyVideo(target, property.video);
 
   if (propertyImages.length) {
     let activeImageIndex = 0;
@@ -505,6 +520,64 @@ async function initializeDetailPage() {
       } else if (event.key === "Escape") {
         event.preventDefault();
         lightbox.close();
+      }
+
+      let instagramEmbedScriptPromise;
+
+      function loadInstagramEmbedScript() {
+        if (window.instgrm?.Embeds?.process) return Promise.resolve();
+        if (instagramEmbedScriptPromise) return instagramEmbedScriptPromise;
+
+        instagramEmbedScriptPromise = new Promise((resolve, reject) => {
+          const script = document.createElement("script");
+          script.src = "https://www.instagram.com/embed.js";
+          script.async = true;
+          script.dataset.instagramEmbedScript = "true";
+          script.addEventListener("load", resolve, { once: true });
+          script.addEventListener("error", () => reject(new Error("O script de incorporação do Instagram não carregou.")), { once: true });
+          document.head.append(script);
+        });
+        return instagramEmbedScriptPromise;
+      }
+
+      function initializePropertyVideo(target, video) {
+        const validatedVideo = parsePropertyVideoUrl(video.url);
+        if (!validatedVideo || validatedVideo.platform !== video.platform) return;
+
+        const frame = target.querySelector("[data-property-video-frame]");
+        const fallback = target.querySelector("[data-property-video-fallback]");
+        const fallbackLink = target.querySelector("[data-property-video-link]");
+        frame.dataset.platform = validatedVideo.platform;
+        const showFallback = () => {
+          fallbackLink.href = validatedVideo.url;
+          fallback.hidden = false;
+        };
+
+        if (validatedVideo.platform === "youtube") {
+          const iframe = document.createElement("iframe");
+          iframe.title = "Vídeo de apresentação do imóvel no YouTube";
+          iframe.src = validatedVideo.embedUrl;
+          iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
+          iframe.allowFullscreen = true;
+          iframe.referrerPolicy = "strict-origin-when-cross-origin";
+          iframe.loading = "lazy";
+          iframe.addEventListener("error", showFallback, { once: true });
+          frame.append(iframe);
+          return;
+        }
+
+        const post = document.createElement("blockquote");
+        post.className = "instagram-media";
+        post.setAttribute("data-instgrm-permalink", validatedVideo.url);
+        post.setAttribute("data-instgrm-version", "14");
+        frame.append(post);
+
+        void loadInstagramEmbedScript().then(() => {
+          window.instgrm?.Embeds?.process();
+          window.setTimeout(() => {
+            if (!frame.querySelector("iframe")) showFallback();
+          }, 10000);
+        }).catch(showFallback);
       }
     });
   }
@@ -567,6 +640,59 @@ function initializeNavigation() {
   });
 }
 
+function initializeHeroCarousel() {
+  const hero = document.querySelector(".hero");
+  if (!hero) return;
+
+  const slides = Array.from(hero.querySelectorAll(".hero-slide"));
+  const indicators = Array.from(hero.querySelectorAll("[data-hero-slide]"));
+  if (slides.length < 2 || indicators.length !== slides.length) return;
+
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+  let activeIndex = slides.findIndex((slide) => slide.classList.contains("is-active"));
+  let intervalId;
+  let isVisible = true;
+  const updateSlides = (index) => {
+    activeIndex = index;
+    slides.forEach((slide, slideIndex) => {
+      slide.classList.toggle("is-active", slideIndex === activeIndex);
+    });
+    indicators.forEach((indicator, indicatorIndex) => {
+      const active = indicatorIndex === activeIndex;
+      indicator.classList.toggle("is-active", active);
+      indicator.setAttribute("aria-pressed", String(active));
+    });
+  };
+  const stopAutoplay = () => {
+    window.clearInterval(intervalId);
+    intervalId = undefined;
+  };
+  const startAutoplay = () => {
+    stopAutoplay();
+    if (reducedMotion.matches || !isVisible || document.hidden) return;
+    intervalId = window.setInterval(() => {
+      updateSlides((activeIndex + 1) % slides.length);
+    }, 5000);
+  };
+
+  indicators.forEach((indicator) => {
+    indicator.addEventListener("click", () => {
+      updateSlides(Number(indicator.dataset.heroSlide));
+      startAutoplay();
+    });
+  });
+  reducedMotion.addEventListener("change", startAutoplay);
+  document.addEventListener("visibilitychange", startAutoplay);
+  if ("IntersectionObserver" in window) {
+    const observer = new IntersectionObserver(([entry]) => {
+      isVisible = entry.isIntersecting;
+      startAutoplay();
+    });
+    observer.observe(hero);
+  }
+  startAutoplay();
+}
+
 function initializeReveals() {
   const items = document.querySelectorAll(".reveal");
   if (!("IntersectionObserver" in window)) {
@@ -588,6 +714,7 @@ function initializeReveals() {
 
 function initializeSite() {
   initializeNavigation();
+  initializeHeroCarousel();
   initializeCatalog();
   initializeDetailPage();
   initializeReveals();

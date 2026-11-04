@@ -47,6 +47,8 @@ O SQL cria o bucket privado `property-photos`, limitado a imagens JPEG, PNG, Web
 
 As tabelas `properties`, `property_images` e o bucket aplicam RLS/políticas próprias. A chave pública do navegador não concede acesso administrativo sem uma sessão autenticada e uma linha correspondente em `admin_users`.
 
+Os links de apresentação do YouTube e Instagram Reels são guardados como uma entrada com marcador reservado no array `properties.features`. O site separa essa entrada das características exibidas e valida o domínio antes de gerar a incorporação. Esse recurso não envia arquivos de vídeo nem requer alteração do schema, das políticas ou do Storage.
+
 ## 5. Verificação manual
 
 1. Abra `/admin.html` sem sessão: só o formulário de login deve estar disponível.

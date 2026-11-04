@@ -1,4 +1,5 @@
 import { escapeHtml, isSupabaseConfigured, signImageUrls, supabase } from "./supabase.js";
+import { extractPropertyVideo, parsePropertyVideoUrl, setPropertyVideo } from "./video.js";
 
 const MAX_FILE_SIZE = 8 * 1024 * 1024;
 const MAX_PHOTOS = 20;
@@ -92,6 +93,7 @@ function resetEditor() {
   elements.form.elements.bathrooms.value = "0";
   elements.form.elements.parking.value = "0";
   elements.form.elements.status.value = "draft";
+  elements.form.elements.video_url.setCustomValidity("");
   elements.photoInput.value = "";
   existingPhotos = [];
   removedPhotos = [];
@@ -111,6 +113,7 @@ function openNewProperty() {
 function propertyPayload(formData) {
   const numberOrNull = (field) => formData.get(field) === "" ? null : Number(formData.get(field));
   const integerOrZero = (field) => Number(formData.get(field) || 0);
+  const features = String(formData.get("features") || "").split(/\r?\n/).map((value) => value.trim()).filter(Boolean);
   return {
     title: String(formData.get("title")).trim(),
     reference: String(formData.get("reference") || "").trim() || null,
@@ -129,7 +132,7 @@ function propertyPayload(formData) {
     total_area: numberOrNull("total_area"),
     built_area: numberOrNull("built_area"),
     description: String(formData.get("description") || "").trim(),
-    features: String(formData.get("features") || "").split(/\r?\n/).map((value) => value.trim()).filter(Boolean),
+    features: setPropertyVideo(features, formData.get("video_url")),
     featured: formData.get("featured") === "on",
     updated_at: new Date().toISOString()
   };
@@ -170,6 +173,15 @@ async function uploadSelectedPhotos(propertyId) {
 
 async function saveProperty(event) {
   event.preventDefault();
+  const videoField = elements.form.elements.video_url;
+  const videoValue = videoField.value.trim();
+  const validVideo = !videoValue || parsePropertyVideoUrl(videoValue);
+  videoField.setCustomValidity(validVideo ? "" : "Use um link válido do YouTube ou de um Instagram Reels público.");
+  if (!validVideo) {
+    showFeedback(videoField.validationMessage, "error", 0);
+    videoField.reportValidity();
+    return;
+  }
   if (!elements.form.reportValidity()) return;
 
   let uploadedPhotos = [];
@@ -266,9 +278,11 @@ async function openEditProperty(id) {
   elements.editorTitle.textContent = "Editar imóvel";
   elements.saveButton.textContent = "Salvar alterações";
   const fields = elements.form.elements;
+  const propertyVideo = extractPropertyVideo(property.features);
   for (const field of Array.from(fields)) {
-    if (!field.name || !Object.hasOwn(property, field.name)) continue;
-    if (field.name === "features") field.value = property.features.join("\n");
+    if (!field.name || (field.name !== "video_url" && !Object.hasOwn(property, field.name))) continue;
+    if (field.name === "features") field.value = propertyVideo.features.join("\n");
+    else if (field.name === "video_url") field.value = propertyVideo.video?.url || "";
     else if (field.type === "checkbox") field.checked = Boolean(property[field.name]);
     else if (field.name !== "photos" && field.name !== "id") field.value = property[field.name] ?? "";
   }
@@ -502,6 +516,13 @@ async function initializeAdmin() {
     setEditorOpen(false);
   });
   elements.form.addEventListener("submit", saveProperty);
+  elements.form.elements.video_url.addEventListener("input", (event) => {
+    const field = event.currentTarget;
+    const value = field.value.trim();
+    field.setCustomValidity(!value || parsePropertyVideoUrl(value)
+      ? ""
+      : "Use um link válido do YouTube ou de um Instagram Reels público.");
+  });
   elements.list.addEventListener("click", async (event) => {
     const edit = event.target.closest("[data-edit]");
     const toggle = event.target.closest("[data-toggle]");

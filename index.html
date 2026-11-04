@@ -36,6 +36,20 @@
 
   <main>
     <section class="hero" id="inicio" aria-labelledby="heroTitle">
+      <div class="hero-slides" aria-hidden="true">
+        <div class="hero-slide is-active hero-slide-city" id="heroSlideCity">
+          <img src="assets/hero.png" alt="" fetchpriority="high">
+        </div>
+        <div class="hero-slide hero-slide-landscape-one" id="heroSlideLandscapeOne">
+          <img src="assets/paisagem-hero.jpg" alt="" loading="lazy" decoding="async">
+        </div>
+        <div class="hero-slide hero-slide-landscape-two" id="heroSlideLandscapeTwo">
+          <img src="assets/paisagem2-hero.jpg" alt="" loading="lazy" decoding="async">
+        </div>
+        <div class="hero-slide hero-slide-landscape-three" id="heroSlideLandscapeThree">
+          <img src="assets/paisagem3-hero.jpg" alt="" loading="lazy" decoding="async">
+        </div>
+      </div>
       <div class="hero-shade"></div>
       <div class="hero-content page-width">
         <p class="eyebrow hero-eyebrow"><span class="eyebrow-mark"></span> Nei Carvalho <span class="eyebrow-divider">—</span> Consultor Imobiliário</p>
@@ -47,6 +61,12 @@
         </div>
         <div class="hero-caption"><span class="caption-line"></span><span>SOROCABA · SÃO PAULO</span></div>
       </div>
+      <nav class="hero-indicators" aria-label="Imagens de Sorocaba">
+        <button class="hero-indicator is-active" type="button" aria-label="Mostrar panorama de Sorocaba" aria-pressed="true" data-hero-slide="0"><span></span></button>
+        <button class="hero-indicator" type="button" aria-label="Mostrar paisagem de Sorocaba" aria-pressed="false" data-hero-slide="1"><span></span></button>
+        <button class="hero-indicator" type="button" aria-label="Mostrar Jardim Botânico de Sorocaba" aria-pressed="false" data-hero-slide="2"><span></span></button>
+        <button class="hero-indicator" type="button" aria-label="Mostrar região central de Sorocaba" aria-pressed="false" data-hero-slide="3"><span></span></button>
+      </nav>
       <a class="hero-scroll" href="#imoveis" aria-label="Desça para conhecer os imóveis"><span></span></a>
     </section>
 
