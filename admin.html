@@ -36,8 +36,15 @@
         </label>
         <label class="admin-field">
           <span>Senha</span>
-          <input name="password" type="password" autocomplete="current-password" required>
+          <div class="admin-password-control">
+            <input id="loginPassword" name="password" type="password" autocomplete="current-password" required>
+            <button class="admin-password-toggle" id="togglePasswordVisibility" type="button" aria-label="Mostrar senha" aria-controls="loginPassword" aria-pressed="false">
+              <svg data-eye-open aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+              <svg data-eye-closed aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" hidden><path d="m3 3 18 18"></path><path d="M10.6 10.6a2 2 0 0 0 2.8 2.8"></path><path d="M9.9 5.2A10.7 10.7 0 0 1 12 5c6.4 0 10 7 10 7a15.7 15.7 0 0 1-3.1 3.9"></path><path d="M6.2 6.2C3.5 8 2 12 2 12s3.6 7 10 7a10.7 10.7 0 0 0 4.1-.8"></path></svg>
+            </button>
+          </div>
         </label>
+        <p class="admin-login-feedback" id="loginFeedback" role="alert" aria-live="assertive" hidden></p>
         <button class="admin-button admin-button-primary" type="submit">Entrar</button>
       </form>
     </section>

@@ -32,6 +32,12 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .admin-login-form { gap: 17px; }
 .admin-field { min-width: 0; display: flex; flex-direction: column; gap: 7px; color: #556171; font-size: 11px; font-weight: 700; }
 .admin-field input, .admin-field select, .admin-field textarea { width: 100%; min-height: 43px; padding: 10px 12px; color: var(--admin-ink); border: 1px solid #dfe3e7; border-radius: 0; background: white; font-size: 12px; font-weight: 500; }
+.admin-password-control { position: relative; }
+.admin-password-control input { padding-right: 50px; }
+.admin-password-toggle { position: absolute; top: 0; right: 0; width: 46px; height: 43px; padding: 0; display: grid; place-items: center; color: var(--admin-muted); border: 0; background: transparent; cursor: pointer; }
+.admin-password-toggle:hover { color: var(--admin-navy); }
+.admin-password-toggle svg { width: 19px; height: 19px; }
+.admin-login-feedback { margin: -5px 0 0; padding: 10px 12px; color: #813b3b; border: 1px solid #ead9d9; background: #fbf2f2; font-size: 11px; font-weight: 600; }
 .admin-field textarea { min-height: 92px; resize: vertical; }
 .admin-field input[type="file"] { padding: 8px; }
 .admin-field small { color: var(--admin-muted); font-size: 10px; font-weight: 500; }

@@ -15,6 +15,9 @@ const elements = {
   dashboardPanel: document.querySelector("#dashboardPanel"),
   headerActions: document.querySelector("#adminHeaderActions"),
   loginForm: document.querySelector("#loginForm"),
+  loginPassword: document.querySelector("#loginPassword"),
+  togglePasswordVisibility: document.querySelector("#togglePasswordVisibility"),
+  loginFeedback: document.querySelector("#loginFeedback"),
   signOutButton: document.querySelector("#signOutButton"),
   feedback: document.querySelector("#adminFeedback"),
   newButton: document.querySelector("#newPropertyButton"),
@@ -39,6 +42,7 @@ let removedPhotos = [];
 let selectedPhotos = [];
 let primaryImageKey = "";
 let feedbackTimeout;
+let loginSubmitting = false;
 
 function showFeedback(message, kind = "info", duration = 6000) {
   window.clearTimeout(feedbackTimeout);
@@ -55,6 +59,17 @@ function showFeedback(message, kind = "info", duration = 6000) {
 function setBusy(button, busy, label) {
   button.disabled = busy;
   if (label) button.textContent = label;
+}
+
+function loginErrorMessage(error) {
+  const message = typeof error?.message === "string" ? error.message.toLowerCase() : "";
+  if (message.includes("invalid login credentials") || message.includes("invalid email or password")) {
+    return "E-mail ou senha incorretos. Confira os dados e tente novamente.";
+  }
+  if (message.includes("fetch") || message.includes("network")) {
+    return "Não foi possível conectar ao serviço de login. Verifique sua conexão e tente novamente.";
+  }
+  return "Não foi possível entrar no painel. Tente novamente em instantes.";
 }
 
 function revokeSelectedPreviews() {
@@ -498,6 +513,15 @@ function initializePhotoPicker() {
 }
 
 async function initializeAdmin() {
+  elements.togglePasswordVisibility.addEventListener("click", () => {
+    const showPassword = elements.loginPassword.type === "password";
+    elements.loginPassword.type = showPassword ? "text" : "password";
+    elements.togglePasswordVisibility.setAttribute("aria-label", showPassword ? "Ocultar senha" : "Mostrar senha");
+    elements.togglePasswordVisibility.setAttribute("aria-pressed", String(showPassword));
+    elements.togglePasswordVisibility.querySelector("[data-eye-open]").hidden = showPassword;
+    elements.togglePasswordVisibility.querySelector("[data-eye-closed]").hidden = !showPassword;
+  });
+
   if (!isSupabaseConfigured) {
     elements.loginPanel.hidden = false;
     elements.loginForm.querySelector("button[type=submit]").disabled = true;
@@ -533,7 +557,11 @@ async function initializeAdmin() {
   });
   elements.loginForm.addEventListener("submit", async (event) => {
     event.preventDefault();
+    if (loginSubmitting) return;
+    loginSubmitting = true;
     const button = elements.loginForm.querySelector("button[type=submit]");
+    elements.loginFeedback.hidden = true;
+    elements.loginFeedback.textContent = "";
     setBusy(button, true, "Entrando…");
     try {
       const formData = new FormData(elements.loginForm);
@@ -542,13 +570,16 @@ async function initializeAdmin() {
         password: String(formData.get("password"))
       });
       if (error) {
-        showFeedback(`Falha no login: ${error.message}`, "error", 0);
+        elements.loginFeedback.textContent = loginErrorMessage(error);
+        elements.loginFeedback.hidden = false;
       } else {
         await verifyAdmin(data.session);
       }
     } catch (error) {
-      showFeedback(`Falha no login: ${error.message}`, "error", 0);
+      elements.loginFeedback.textContent = loginErrorMessage(error);
+      elements.loginFeedback.hidden = false;
     } finally {
+      loginSubmitting = false;
       setBusy(button, false, "Entrar");
     }
   });
