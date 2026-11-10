@@ -40,6 +40,7 @@ module.exports = async function handler(request, response) {
   let supabase;
   let uploadedDerivedPath;
   let previousOlxPath;
+  let failureStage = "consulta no Supabase";
   try {
     supabase = createAuthenticatedClient(accessToken);
     const { data: userData, error: userError } = await supabase.auth.getUser(accessToken);
@@ -80,15 +81,19 @@ module.exports = async function handler(request, response) {
     }
     previousOlxPath = image.olx_storage_path;
 
+    failureStage = "download";
     const { data: original, error: downloadError } = await supabase.storage
       .from("property-photos")
       .download(image.storage_path);
     if (downloadError) throw downloadError;
+
+    failureStage = "conversão";
     const prepared = await prepareOlxImage(Buffer.from(await original.arrayBuffer()));
     const derivedPath = `${propertyId}/olx/${imageId}.jpg`;
     const olxStoragePath = prepared.optimized ? derivedPath : null;
 
     if (olxStoragePath) {
+      failureStage = "upload";
       const { error: uploadError } = await supabase.storage
         .from("property-photos")
         .upload(olxStoragePath, prepared.buffer, {
@@ -100,6 +105,7 @@ module.exports = async function handler(request, response) {
       uploadedDerivedPath = olxStoragePath;
     }
 
+    failureStage = "atualização no Supabase";
     const { error: updateError } = await supabase
       .from("property_images")
       .update({ olx_storage_path: olxStoragePath, olx_ready: true })
@@ -125,7 +131,12 @@ module.exports = async function handler(request, response) {
       bytes: prepared.buffer.length
     }));
   } catch (error) {
-    console.error("[olx-prepare-image] Não foi possível preparar a imagem.", error);
+    console.error("[olx-prepare-image] Não foi possível preparar a imagem.", {
+      propertyId,
+      imageId,
+      stage: failureStage,
+      error
+    });
     if (uploadedDerivedPath && supabase) {
       const { error: cleanupError } = await supabase.storage
         .from("property-photos")
