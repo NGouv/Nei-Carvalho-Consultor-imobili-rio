@@ -17,7 +17,7 @@ const PROPERTY_FIELDS = [
   "total_area",
   "description",
   "features",
-  "property_images(id,display_order,is_primary)"
+  "property_images(id,display_order,is_primary,olx_ready)"
 ].join(",");
 
 async function fetchPublishedProperties(supabase) {

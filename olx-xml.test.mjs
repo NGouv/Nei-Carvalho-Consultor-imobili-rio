@@ -19,8 +19,8 @@ const completeProperty = {
   description: "Descrição do imóvel",
   features: ["Piscina", "Varanda", "Armários embutidos"],
   property_images: [
-    { id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", display_order: 1, is_primary: false },
-    { id: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb", display_order: 0, is_primary: true }
+    { id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", display_order: 1, is_primary: false, olx_ready: true },
+    { id: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb", display_order: 0, is_primary: true, olx_ready: true }
   ]
 };
 
@@ -92,4 +92,18 @@ test("exports only a YouTube video and keeps arbitrary features in the observati
   assert.match(xml, /Características: Piscina, Área gourmet/);
   assert.match(xml, /<Videos><Video>https:\/\/www\.youtube\.com\/watch\?v=abcdefghijk<\/Video><\/Videos>/);
   assert.doesNotMatch(xml, /instagram\.com/);
+});
+
+test("omits OLX photos that have not been prepared", () => {
+  const xml = buildOlxXml([{
+    ...completeProperty,
+    property_images: [
+      { id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", display_order: 0, is_primary: true, olx_ready: false },
+      { id: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb", display_order: 1, is_primary: false, olx_ready: true }
+    ]
+  }], "https://imoveis.example");
+
+  assert.equal((xml.match(/<URLArquivo>/g) || []).length, 1);
+  assert.match(xml, /bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb/);
+  assert.doesNotMatch(xml, /aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/);
 });

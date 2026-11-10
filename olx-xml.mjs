@@ -139,7 +139,7 @@ function propertyXml(property, baseUrl) {
   const propertyId = String(property.id);
   const code = propertyId.replace(/[^a-zA-Z0-9]/g, "").slice(0, 20);
   const images = (Array.isArray(property.property_images) ? property.property_images : [])
-    .filter((image) => image && image.id)
+    .filter((image) => image && image.id && image.olx_ready === true)
     .slice()
     .sort((left, right) => Number(Boolean(right.is_primary)) - Number(Boolean(left.is_primary))
       || Number(left.display_order || 0) - Number(right.display_order || 0));

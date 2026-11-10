@@ -44,16 +44,23 @@ const property = {
   property_images: [{
     id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
     display_order: 0,
-    is_primary: true
+    is_primary: true,
+    olx_ready: true,
+    olx_storage_path: null
   }]
 };
 
-function createSupabaseMock({ propertyData = [property], imageData = null, publishedPropertyData = { id: property.id } } = {}) {
+function createSupabaseMock({
+  propertyData = [property],
+  imageData = null,
+  publishedPropertyData = { id: property.id },
+  file = null
+} = {}) {
   const queries = [];
   const signedUrlRequests = [];
   const client = {
     queries,
-    signedUrlRequests,
+    downloads: [],
     from(table) {
       const query = { table, filters: [], selection: "" };
       queries.push(query);
@@ -82,9 +89,9 @@ function createSupabaseMock({ propertyData = [property], imageData = null, publi
     storage: {
       from(bucket) {
         return {
-          async createSignedUrl(path, expiresIn) {
-            signedUrlRequests.push({ bucket, path, expiresIn });
-            return { data: { signedUrl: "https://storage.example/signed/photo.jpg" }, error: null };
+          async download(path) {
+            client.downloads.push({ bucket, path });
+            return { data: file || new Blob(["not-an-image"]), error: null };
           }
         };
       }
@@ -98,11 +105,25 @@ function createResponse() {
     headers: {},
     statusCode: 200,
     body: "",
+    chunks: [],
+    headersSent: false,
     setHeader(name, value) {
       this.headers[name.toLowerCase()] = value;
     },
+    write(body) {
+      this.headersSent = true;
+      this.chunks.push(Buffer.from(body));
+      return true;
+    },
+    once() {},
     end(body = "") {
-      this.body = body;
+      if (body.length) this.chunks.push(Buffer.from(body));
+      if (this.chunks.length) this.body = Buffer.concat(this.chunks);
+      else this.body = body;
+      this.headersSent = true;
+    },
+    destroy(error) {
+      this.error = error;
     }
   };
 }
@@ -116,17 +137,27 @@ test("feed GET queries published property fields and returns official XML", asyn
 
   assert.equal(response.statusCode, 200);
   assert.equal(response.headers["content-type"], "application/xml; charset=utf-8");
-  assert.match(response.body, /<Carga[\s\S]*<CodigoImovel>12345678123412341234<\/CodigoImovel>/);
-  assert.match(response.body, /<CEP>18035000<\/CEP>/);
+  const xml = response.body.toString("utf8");
+  assert.match(xml, /<Carga[\s\S]*<CodigoImovel>12345678123412341234<\/CodigoImovel>/);
+  assert.match(xml, /<CEP>18035000<\/CEP>/);
   assert.deepEqual(mockClient.queries[0].filters, [["status", "published"]]);
   assert.match(mockClient.queries[0].selection, /cep/);
-  assert.match(mockClient.queries[0].selection, /property_images\(id,display_order,is_primary\)/);
+  assert.match(mockClient.queries[0].selection, /property_images\(id,display_order,is_primary,olx_ready\)/);
 });
 
-test("image URL redirects only for an image attached to a published property", async () => {
+test("image URL serves a ready image directly for a published property", async () => {
+  const sharp = require("sharp");
+  const image = await sharp({
+    create: { width: 100, height: 100, channels: 3, background: "#d0d0d0" }
+  }).jpeg().toBuffer();
   mockClient = createSupabaseMock({
     propertyData: [],
-    imageData: { storage_path: `${property.id}/photo.jpg` }
+    imageData: {
+      storage_path: `${property.id}/photo.jpg`,
+      olx_storage_path: null,
+      olx_ready: true
+    },
+    file: new Blob([image], { type: "image/jpeg" })
   });
   const response = createResponse();
 
@@ -135,12 +166,14 @@ test("image URL redirects only for an image attached to a published property", a
     query: { propertyId: property.id, imageId: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa" }
   }, response);
 
-  assert.equal(response.statusCode, 302);
-  assert.equal(response.headers.location, "https://storage.example/signed/photo.jpg");
-  assert.deepEqual(mockClient.signedUrlRequests, [{
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.headers.location, undefined);
+  assert.equal(response.headers["content-type"], "image/jpeg");
+  assert.equal(response.headers["content-length"], String(image.length));
+  assert.deepEqual(response.body, image);
+  assert.deepEqual(mockClient.downloads, [{
     bucket: "property-photos",
-    path: `${property.id}/photo.jpg`,
-    expiresIn: 86400
+    path: `${property.id}/photo.jpg`
   }]);
   assert.deepEqual(mockClient.queries[1].filters, [["id", property.id], ["status", "published"]]);
 });
@@ -148,7 +181,7 @@ test("image URL redirects only for an image attached to a published property", a
 test("image URL does not expose photos of unpublished properties", async () => {
   mockClient = createSupabaseMock({
     propertyData: [],
-    imageData: { storage_path: `${property.id}/photo.jpg` },
+    imageData: { storage_path: `${property.id}/photo.jpg`, olx_ready: true },
     publishedPropertyData: null
   });
   const response = createResponse();
@@ -159,7 +192,51 @@ test("image URL does not expose photos of unpublished properties", async () => {
   }, response);
 
   assert.equal(response.statusCode, 404);
-  assert.equal(mockClient.signedUrlRequests.length, 0);
+  assert.equal(mockClient.downloads.length, 0);
+});
+
+test("image URL does not expose photos that are not OLX-ready", async () => {
+  mockClient = createSupabaseMock({
+    propertyData: [],
+    imageData: { storage_path: `${property.id}/photo.jpg`, olx_ready: false }
+  });
+  const response = createResponse();
+
+  await imageHandler({
+    method: "GET",
+    query: { propertyId: property.id, imageId: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa" }
+  }, response);
+
+  assert.equal(response.statusCode, 404);
+  assert.equal(mockClient.downloads.length, 0);
+});
+
+test("image URL serves the optimized copy instead of the original when configured", async () => {
+  const sharp = require("sharp");
+  const image = await sharp({
+    create: { width: 100, height: 100, channels: 3, background: "#d0d0d0" }
+  }).jpeg().toBuffer();
+  mockClient = createSupabaseMock({
+    propertyData: [],
+    imageData: {
+      storage_path: `${property.id}/original.avif`,
+      olx_storage_path: `${property.id}/olx/optimized.jpg`,
+      olx_ready: true
+    },
+    file: new Blob([image], { type: "image/jpeg" })
+  });
+  const response = createResponse();
+
+  await imageHandler({
+    method: "GET",
+    query: { propertyId: property.id, imageId: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa" }
+  }, response);
+
+  assert.equal(response.statusCode, 200);
+  assert.deepEqual(mockClient.downloads, [{
+    bucket: "property-photos",
+    path: `${property.id}/olx/optimized.jpg`
+  }]);
 });
 
 test("image URL rejects malformed identifiers", async () => {

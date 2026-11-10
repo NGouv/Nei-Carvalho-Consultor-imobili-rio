@@ -39,6 +39,8 @@ create table if not exists public.property_images (
   alt_text text not null default '',
   display_order integer not null default 0,
   is_primary boolean not null default false,
+  olx_storage_path text,
+  olx_ready boolean not null default false,
   created_at timestamptz not null default now()
 );
 
@@ -230,7 +232,10 @@ create policy "Published property photos are readable"
         select 1
         from public.property_images
         join public.properties on properties.id = property_images.property_id
-        where property_images.storage_path = storage.objects.name
+        where (
+            property_images.storage_path = storage.objects.name
+            or property_images.olx_storage_path = storage.objects.name
+          )
           and properties.status = 'published'
       )
     )

@@ -40,7 +40,8 @@ const elements = {
   olxFeedUrl: document.querySelector("#olxFeedUrl"),
   copyOlxFeedButton: document.querySelector("#copyOlxFeedButton"),
   testOlxFeedButton: document.querySelector("#testOlxFeedButton"),
-  olxPendingSummary: document.querySelector("#olxPendingSummary")
+  olxPendingSummary: document.querySelector("#olxPendingSummary"),
+  prepareOlxImagesButton: document.querySelector("#prepareOlxImagesButton")
 };
 let properties = [];
 let existingPhotos = [];
@@ -193,6 +194,48 @@ async function uploadSelectedPhotos(propertyId) {
   return uploaded;
 }
 
+async function prepareOlxImages(images) {
+  const pendingImages = images.filter((image) => image && image.olx_ready !== true);
+  const result = { ready: 0, optimized: 0, failed: 0, error: "" };
+  if (!pendingImages.length) return result;
+
+  let accessToken;
+  try {
+    const { data, error } = await supabase.auth.getSession();
+    if (error) throw error;
+    accessToken = data.session?.access_token;
+    if (!accessToken) throw new Error("A sessão administrativa expirou. Entre novamente no painel.");
+  } catch (error) {
+    console.error("[admin] Não foi possível obter a sessão para preparar fotos OLX.", error);
+    result.failed = pendingImages.length;
+    result.error = error.message;
+    return result;
+  }
+
+  for (const image of pendingImages) {
+    try {
+      const response = await fetch("/api/olx-prepare-image", {
+        method: "POST",
+        cache: "no-store",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({ propertyId: image.property_id, imageId: image.id })
+      });
+      const resultBody = await response.json();
+      if (!response.ok) throw new Error(resultBody.error || `HTTP ${response.status}`);
+      result.ready += 1;
+      if (resultBody.optimized) result.optimized += 1;
+    } catch (error) {
+      result.failed += 1;
+      result.error ||= error.message;
+      console.error(`[admin] Falha ao preparar a foto ${image.id} para a OLX.`, error);
+    }
+  }
+  return result;
+}
+
 async function saveProperty(event) {
   event.preventDefault();
   const videoField = elements.form.elements.video_url;
@@ -207,6 +250,7 @@ async function saveProperty(event) {
   if (!elements.form.reportValidity()) return;
 
   let uploadedPhotos = [];
+  let insertedImages = [];
   let newPrimaryImageId = "";
   setBusy(elements.saveButton, true, "Salvando…");
   try {
@@ -235,21 +279,25 @@ async function saveProperty(event) {
     uploadedPhotos = await uploadSelectedPhotos(propertyId);
 
     if (uploadedPhotos.length) {
-      const { data: insertedImages, error } = await supabase
+      const { data, error } = await supabase
         .from("property_images")
         .insert(uploadedPhotos.map(({ key, ...image }) => image))
-        .select("id, storage_path");
+        .select("id, property_id, storage_path, olx_storage_path, olx_ready");
       if (error) throw new Error(`Falha ao associar as fotografias ao imóvel: ${error.message}`);
-      const selectedNewImage = insertedImages.find((image) =>
+      insertedImages = data;
+      const selectedNewImage = data.find((image) =>
         uploadedPhotos.find((upload) => upload.storage_path === image.storage_path)?.key === primaryImageKey);
       if (selectedNewImage) newPrimaryImageId = selectedNewImage.id;
       uploadedPhotos = [];
     }
 
+    const imagePreparation = await prepareOlxImages(insertedImages);
+
     if (removedPhotos.length) {
       const { error: deleteError } = await supabase.from("property_images").delete().in("id", removedPhotos.map((photo) => photo.id));
       if (deleteError) throw deleteError;
-      const { error } = await supabase.storage.from("property-photos").remove(removedPhotos.map((photo) => photo.storage_path));
+      const removedPaths = removedPhotos.flatMap((photo) => [photo.storage_path, photo.olx_storage_path].filter(Boolean));
+      const { error } = await supabase.storage.from("property-photos").remove(removedPaths);
       if (error) throw new Error(`Imóvel salvo, mas não foi possível excluir algumas fotografias antigas: ${error.message}`);
     }
 
@@ -267,7 +315,12 @@ async function saveProperty(event) {
       .eq("id", propertyId);
     if (statusError) throw statusError;
 
-    showFeedback("Imóvel salvo com sucesso.", "success");
+    const preparationMessage = imagePreparation.failed
+      ? ` ${imagePreparation.failed} foto(s) aguardam preparação; tente novamente em “Preparar fotos pendentes”.${imagePreparation.error ? ` Motivo: ${imagePreparation.error}` : ""}`
+      : imagePreparation.optimized
+        ? ` ${imagePreparation.optimized} versão(ões) otimizada(s) foram criadas para a OLX.`
+        : "";
+    showFeedback(`Imóvel salvo com sucesso.${preparationMessage}`, imagePreparation.failed ? "error" : "success", imagePreparation.failed ? 0 : 6000);
     resetEditor();
     setEditorOpen(false);
     await loadProperties();
@@ -361,19 +414,45 @@ function renderOlxSummary() {
   const pending = publishedProperties
     .map((property) => getOlxPropertyIssues(property))
     .filter((issues) => issues.length > 0);
-
-  if (!pending.length) {
-    elements.olxPendingSummary.textContent = publishedProperties.length
-      ? `${publishedProperties.length} imóvel(is) publicado(s) com os campos obrigatórios preenchidos.`
-      : "Nenhum imóvel publicado para exportar.";
-    return;
-  }
+  const pendingImages = publishedProperties
+    .filter((property) => getOlxPropertyIssues(property).length === 0)
+    .flatMap((property) => property.property_images || [])
+    .filter((image) => image.olx_ready !== true).length;
 
   const reasons = new Map();
   pending.flat().forEach((issue) => reasons.set(issue, (reasons.get(issue) || 0) + 1));
   const details = Array.from(reasons, ([issue, count]) => `${issue} (${count})`).join("; ");
-  elements.olxPendingSummary.textContent =
-    `${pending.length} imóvel(is) publicado(s) não entram no XML até corrigir: ${details}.`;
+  const messages = [];
+  if (!publishedProperties.length) messages.push("Nenhum imóvel publicado para exportar.");
+  else if (pending.length) messages.push(`${pending.length} imóvel(is) publicado(s) não entram no XML até corrigir: ${details}.`);
+  else messages.push(`${publishedProperties.length} imóvel(is) publicado(s) com os campos obrigatórios preenchidos.`);
+  if (pendingImages) messages.push(`${pendingImages} foto(s) publicada(s) aguardam preparação e não entram no XML.`);
+  elements.olxPendingSummary.textContent = messages.join(" ");
+}
+
+async function preparePendingPublishedImages() {
+  const images = properties
+    .filter((property) => property.status === "published" && getOlxPropertyIssues(property).length === 0)
+    .flatMap((property) => (property.property_images || [])
+      .map((image) => ({ ...image, property_id: property.id })))
+    .filter((image) => image.olx_ready !== true);
+  if (!images.length) {
+    showFeedback("Não há fotos pendentes em imóveis publicados.", "info");
+    return;
+  }
+
+  setBusy(elements.prepareOlxImagesButton, true, "Preparando fotos…");
+  try {
+    const result = await prepareOlxImages(images);
+    await loadProperties();
+    const reason = result.error ? ` Motivo mais recente: ${result.error}` : "";
+    const message = `${result.ready} foto(s) preparada(s); ${result.optimized} versão(ões) otimizada(s); ${result.failed} falha(s).${reason}`;
+    showFeedback(message, result.failed ? "error" : "success", 0);
+  } catch (error) {
+    showFeedback(`Não foi possível preparar as fotos: ${error.message}`, "error", 0);
+  } finally {
+    setBusy(elements.prepareOlxImagesButton, false, "Preparar fotos pendentes");
+  }
 }
 
 async function checkOlxFeed() {
@@ -437,12 +516,22 @@ async function togglePublished(id) {
   if (!property) return;
   try {
     const status = property.status === "published" ? "draft" : "published";
+    let preparation = { failed: 0 };
+    if (status === "published" && getOlxPropertyIssues(property).length === 0) {
+      const images = (property.property_images || [])
+        .filter((image) => image.olx_ready !== true)
+        .map((image) => ({ ...image, property_id: property.id }));
+      preparation = await prepareOlxImages(images);
+    }
     const { error } = await supabase
       .from("properties")
       .update({ status, updated_at: new Date().toISOString() })
       .eq("id", id);
     if (error) throw error;
-    showFeedback(status === "published" ? "Imóvel publicado." : "Imóvel despublicado.", "success");
+    const message = status === "published"
+      ? `Imóvel publicado.${preparation.failed ? ` ${preparation.failed} foto(s) ainda aguardam preparação.` : ""}`
+      : "Imóvel despublicado.";
+    showFeedback(message, preparation.failed ? "error" : "success");
     await loadProperties();
   } catch (error) {
     showFeedback(`Não foi possível alterar a publicação: ${error.message}`, "error", 0);
@@ -455,7 +544,8 @@ async function deleteProperty(id) {
   if (!window.confirm(`Excluir “${property.title}”? Esta ação não pode ser desfeita.`)) return;
 
   try {
-    const paths = (property.property_images || []).map((image) => image.storage_path);
+    const paths = (property.property_images || [])
+      .flatMap((image) => [image.storage_path, image.olx_storage_path].filter(Boolean));
     const { error } = await supabase.from("properties").delete().eq("id", id);
     if (error) throw error;
     if (paths.length) {
@@ -577,6 +667,7 @@ async function initializeAdmin() {
     }
   });
   elements.testOlxFeedButton.addEventListener("click", checkOlxFeed);
+  elements.prepareOlxImagesButton.addEventListener("click", preparePendingPublishedImages);
 
   elements.togglePasswordVisibility.addEventListener("click", () => {
     const showPassword = elements.loginPassword.type === "password";
