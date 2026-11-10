@@ -8,6 +8,10 @@
   ],
   "rewrites": [
     {
+      "source": "/api/integracao/olx.xml",
+      "destination": "/api/olx-feed"
+    },
+    {
       "source": "/admin",
       "destination": "/admin.html"
     }

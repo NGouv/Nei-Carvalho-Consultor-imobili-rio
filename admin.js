@@ -1,5 +1,6 @@
 import { escapeHtml, isSupabaseConfigured, signImageUrls, supabase } from "./supabase.js";
 import { extractPropertyVideo, parsePropertyVideoUrl, setPropertyVideo } from "./video.js";
+import { getOlxPropertyIssues } from "./olx-xml.mjs";
 
 const MAX_FILE_SIZE = 8 * 1024 * 1024;
 const MAX_PHOTOS = 20;
@@ -34,7 +35,12 @@ const elements = {
   published: document.querySelector("#publishedCount"),
   drafts: document.querySelector("#draftCount"),
   listCount: document.querySelector("#listCount"),
-  saveButton: document.querySelector("#savePropertyButton")
+  saveButton: document.querySelector("#savePropertyButton"),
+  olxFeedStatus: document.querySelector("#olxFeedStatus"),
+  olxFeedUrl: document.querySelector("#olxFeedUrl"),
+  copyOlxFeedButton: document.querySelector("#copyOlxFeedButton"),
+  testOlxFeedButton: document.querySelector("#testOlxFeedButton"),
+  olxPendingSummary: document.querySelector("#olxPendingSummary")
 };
 let properties = [];
 let existingPhotos = [];
@@ -139,6 +145,7 @@ function propertyPayload(formData) {
     iptu: numberOrNull("iptu"),
     city: String(formData.get("city")).trim(),
     neighborhood: String(formData.get("neighborhood")).trim(),
+    cep: String(formData.get("cep") || "").replace(/\D/g, "") || null,
     address: String(formData.get("address") || "").trim() || null,
     bedrooms: integerOrZero("bedrooms"),
     suites: integerOrZero("suites"),
@@ -346,6 +353,52 @@ function renderProperties() {
         </div>
       </article>`;
   }).join("");
+  renderOlxSummary();
+}
+
+function renderOlxSummary() {
+  const publishedProperties = properties.filter((property) => property.status === "published");
+  const pending = publishedProperties
+    .map((property) => getOlxPropertyIssues(property))
+    .filter((issues) => issues.length > 0);
+
+  if (!pending.length) {
+    elements.olxPendingSummary.textContent = publishedProperties.length
+      ? `${publishedProperties.length} imóvel(is) publicado(s) com os campos obrigatórios preenchidos.`
+      : "Nenhum imóvel publicado para exportar.";
+    return;
+  }
+
+  const reasons = new Map();
+  pending.flat().forEach((issue) => reasons.set(issue, (reasons.get(issue) || 0) + 1));
+  const details = Array.from(reasons, ([issue, count]) => `${issue} (${count})`).join("; ");
+  elements.olxPendingSummary.textContent =
+    `${pending.length} imóvel(is) publicado(s) não entram no XML até corrigir: ${details}.`;
+}
+
+async function checkOlxFeed() {
+  elements.olxFeedStatus.textContent = "Verificando endpoint público…";
+  delete elements.olxFeedStatus.dataset.state;
+  try {
+    const response = await fetch(elements.olxFeedUrl.value, {
+      cache: "no-store",
+      credentials: "omit",
+      headers: { Accept: "application/xml" }
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const xmlText = await response.text();
+    const xml = new DOMParser().parseFromString(xmlText, "application/xml");
+    if (xml.querySelector("parsererror") || xml.documentElement.localName !== "Carga"
+      || !xml.querySelector("Carga > Imoveis")) {
+      throw new Error("a resposta não contém o XML esperado pela OLX");
+    }
+    const count = xml.querySelectorAll("Carga > Imoveis > Imovel").length;
+    elements.olxFeedStatus.textContent = `Endpoint público acessível · ${count} anúncio(s) no XML.`;
+    elements.olxFeedStatus.dataset.state = "success";
+  } catch (error) {
+    elements.olxFeedStatus.textContent = `Endpoint ainda não validado: ${error.message}. Publique a versão atual no Vercel e teste novamente.`;
+    elements.olxFeedStatus.dataset.state = "error";
+  }
 }
 
 async function validateImageFile(file) {
@@ -444,6 +497,7 @@ async function verifyAdmin(session) {
     elements.dashboardPanel.hidden = false;
     elements.headerActions.hidden = false;
     await loadProperties();
+    await checkOlxFeed();
     return true;
   } catch (error) {
     await supabase.auth.signOut();
@@ -513,6 +567,17 @@ function initializePhotoPicker() {
 }
 
 async function initializeAdmin() {
+  elements.olxFeedUrl.value = `${window.location.origin}/api/integracao/olx.xml`;
+  elements.copyOlxFeedButton.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(elements.olxFeedUrl.value);
+      showFeedback("Endereço do XML copiado.", "success");
+    } catch (error) {
+      showFeedback(`Não foi possível copiar o endereço: ${error.message}`, "error");
+    }
+  });
+  elements.testOlxFeedButton.addEventListener("click", checkOlxFeed);
+
   elements.togglePasswordVisibility.addEventListener("click", () => {
     const showPassword = elements.loginPassword.type === "password";
     elements.loginPassword.type = showPassword ? "text" : "password";

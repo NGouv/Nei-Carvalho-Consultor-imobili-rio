@@ -17,6 +17,7 @@ create table if not exists public.properties (
   city text not null,
   neighborhood text not null,
   address text,
+  cep text,
   bedrooms integer not null default 0 check (bedrooms >= 0),
   suites integer not null default 0 check (suites >= 0),
   bathrooms integer not null default 0 check (bathrooms >= 0),

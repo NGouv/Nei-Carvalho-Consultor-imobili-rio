@@ -5,6 +5,7 @@
 1. Crie um projeto no [Supabase](https://supabase.com/dashboard) e aguarde o banco ficar disponível.
 2. No **SQL Editor**, execute o conteúdo completo de `supabase-schema.sql` em uma instalação nova. Ele cria as tabelas, índices, políticas RLS, bucket privado `property-photos` e publicação Realtime.
    - Se o projeto já usa o esquema anterior deste site, mantenha os dados e execute somente `supabase-migration-primary-image.sql` para adicionar com segurança a seleção da foto principal e a substituição automática ao excluir a capa.
+   - Para habilitar a exportação OLX em uma instalação existente, execute também `supabase-migration-olx-cep.sql`; ela adiciona a coluna opcional `properties.cep` sem alterar os registros existentes.
 3. Em **Project Settings → API**, copie a Project URL e a chave pública `anon`/publishable. Nunca use `service_role` no site.
 4. Copie `.env.example` para `.env` na raiz do projeto e preencha:
 
@@ -58,3 +59,14 @@ Os links de apresentação do YouTube e Instagram Reels são guardados como uma 
 5. Teste os mesmos URLs em uma janela anônima: os dados publicados devem ser públicos, mas a administração deve continuar bloqueada.
 
 O catálogo público recebe atualizações em tempo real quando o Realtime está habilitado no projeto; ao retornar à aba, também consulta novamente os dados.
+
+## 6. Exportação XML para a OLX
+
+1. Execute `supabase-migration-olx-cep.sql` no **SQL Editor** de um projeto existente. Em uma instalação nova, a coluna `cep` já está em `supabase-schema.sql`.
+2. No ambiente **Production** do Vercel, configure `PUBLIC_SITE_URL` com a origem HTTPS pública (por exemplo, `https://seu-dominio.com.br`). A função usa `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`, que já são necessárias ao site; também aceita os nomes `SUPABASE_URL` e `SUPABASE_ANON_KEY`. Use exclusivamente a chave `anon`/publishable, nunca `service_role`.
+3. Implante o projeto no Vercel. O feed ficará em `/api/integracao/olx.xml`; o painel em `/admin` testa se a URL está publicamente acessível e mostra os imóveis que ainda não podem ser exportados.
+4. Preencha o CEP de oito dígitos e uma descrição nos imóveis publicados. Imóveis publicados sem CEP/descrição ou com tipo `Outro` (sem correspondência documentada) são omitidos para não gerar anúncios inválidos. Despublicar ou excluir um imóvel o remove do XML na próxima consulta.
+5. O bucket continua privado. URLs estáveis em `/api/olx-image` verificam que o imóvel está publicado antes de redirecionar para uma URL assinada por 24 horas. A chave usada no backend é apenas a chave pública `anon`, sujeita às políticas RLS existentes.
+6. No painel OLX, confirme a elegibilidade da conta e solicite a ativação da importação XML; compartilhe a URL do feed e siga a validação indicada pela equipe OLX. O manual técnico não informa o canal de habilitação da conta.
+
+O XML segue o [manual oficial da OLX para imóveis](https://developers.olx.com.br/anuncio/xml/real_estate/home.html) e as páginas oficiais de [apartamentos](https://developers.olx.com.br/anuncio/xml/real_estate/sub_apartment.html), [casas](https://developers.olx.com.br/anuncio/xml/real_estate/sub_house.html), [terrenos](https://developers.olx.com.br/anuncio/xml/real_estate/sub_land.html) e [comércio e indústria](https://developers.olx.com.br/anuncio/xml/real_estate/sub_commercial.html). IPTU não é enviado porque o manual define `ValorIPTU` como mensal, mas o dado atual não informa a periodicidade. A área construída também não é enviada como `AreaUtil`, pois os conceitos não são necessariamente equivalentes.

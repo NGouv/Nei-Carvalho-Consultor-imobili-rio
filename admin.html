@@ -61,6 +61,29 @@
         <article class="admin-stat"><span>Em rascunho</span><strong id="draftCount">0</strong></article>
       </div>
 
+      <section class="admin-olx-integration" aria-labelledby="olxIntegrationTitle">
+        <div class="admin-olx-heading">
+          <div><p class="admin-eyebrow">Distribuição de anúncios</p><h2 id="olxIntegrationTitle">Integração OLX</h2></div>
+          <span class="admin-olx-status" id="olxFeedStatus" role="status" aria-live="polite">Aguardando verificação do feed.</span>
+        </div>
+        <p class="admin-olx-description">O XML é atualizado automaticamente a partir dos imóveis publicados que atendem aos campos obrigatórios da OLX.</p>
+        <div class="admin-olx-url-row">
+          <label class="admin-field" for="olxFeedUrl"><span>Endereço público do XML</span><input id="olxFeedUrl" type="url" readonly></label>
+          <button class="admin-button admin-button-quiet" id="copyOlxFeedButton" type="button">Copiar endereço</button>
+          <button class="admin-button admin-button-quiet" id="testOlxFeedButton" type="button">Testar acesso</button>
+        </div>
+        <p class="admin-olx-pending" id="olxPendingSummary"></p>
+        <details class="admin-olx-help">
+          <summary>Orientações para configurar na OLX</summary>
+          <ol>
+            <li>Confirme com a OLX a elegibilidade e habilitação da importação XML para a conta.</li>
+            <li>Envie o endereço público acima para a equipe responsável pela integração e solicite a validação do feed.</li>
+            <li>O feed envia apenas imóveis publicados com CEP, descrição e tipo de imóvel compatíveis; complete os pendentes antes da validação.</li>
+            <li>Consulte o <a href="https://developers.olx.com.br/anuncio/xml/real_estate/home.html" target="_blank" rel="noopener noreferrer">manual oficial de importação XML para imóveis</a>. A documentação não especifica o canal de habilitação da conta.</li>
+          </ol>
+        </details>
+      </section>
+
       <section class="admin-list-section" aria-labelledby="listTitle">
         <div class="admin-list-heading"><h2 id="listTitle">Imóveis cadastrados</h2><p id="listCount"></p></div>
         <div class="admin-property-list" id="propertyList" aria-live="polite"></div>
@@ -81,6 +104,7 @@
             <label class="admin-field"><span>IPTU (R$)</span><input name="iptu" type="number" min="0" step="0.01"></label>
             <label class="admin-field"><span>Cidade *</span><input name="city" maxlength="100" required></label>
             <label class="admin-field"><span>Bairro *</span><input name="neighborhood" maxlength="120" required></label>
+            <label class="admin-field"><span>CEP do imóvel</span><input name="cep" inputmode="numeric" autocomplete="postal-code" maxlength="9" pattern="[0-9]{5}-?[0-9]{3}" title="Informe um CEP com 8 números." placeholder="00000-000"></label>
             <label class="admin-field admin-field-wide"><span>Endereço</span><input name="address" maxlength="240"></label>
             <label class="admin-field"><span>Quartos</span><input name="bedrooms" type="number" min="0" step="1" value="0"></label>
             <label class="admin-field"><span>Suítes</span><input name="suites" type="number" min="0" step="1" value="0"></label>

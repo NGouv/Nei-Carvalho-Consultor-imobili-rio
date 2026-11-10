@@ -52,6 +52,20 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .admin-stat { min-height: 96px; padding: 19px 21px; display: flex; flex-direction: column; justify-content: space-between; background: white; border: 1px solid var(--admin-line); }
 .admin-stat span { color: var(--admin-muted); font-size: 10px; font-weight: 700; }
 .admin-stat strong { color: var(--admin-navy); font-size: 24px; line-height: 1; }
+.admin-olx-integration { margin: -20px 0 38px; padding: 21px 22px; background: white; border: 1px solid var(--admin-line); }
+.admin-olx-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.admin-olx-heading h2 { margin: 0; color: var(--admin-navy); font-size: 15px; }
+.admin-olx-status { color: var(--admin-muted); font-size: 10px; font-weight: 700; }
+.admin-olx-status[data-state="success"] { color: #2f704e; }
+.admin-olx-status[data-state="error"] { color: #8d3232; }
+.admin-olx-description, .admin-olx-pending { margin: 10px 0; color: var(--admin-muted); font-size: 11px; }
+.admin-olx-url-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: end; gap: 9px; }
+.admin-olx-url-row .admin-field { min-width: 0; }
+.admin-olx-help { margin-top: 12px; color: var(--admin-muted); font-size: 11px; }
+.admin-olx-help summary { width: max-content; color: var(--admin-navy); font-weight: 700; cursor: pointer; }
+.admin-olx-help ol { margin: 9px 0 0; padding-left: 20px; }
+.admin-olx-help li + li { margin-top: 5px; }
+.admin-olx-help a { color: var(--admin-navy); }
 .admin-list-section { padding: 22px; background: white; border: 1px solid var(--admin-line); }
 .admin-list-heading { margin-bottom: 14px; display: flex; align-items: baseline; justify-content: space-between; gap: 15px; }
 .admin-list-heading h2 { margin: 0; color: var(--admin-navy); font-size: 15px; }
@@ -102,6 +116,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .admin-stats { gap: 8px; }
   .admin-stat { min-height: 83px; padding: 13px 10px; }
   .admin-stat span { font-size: 9px; }
+  .admin-olx-integration { padding: 17px; }
+  .admin-olx-heading { align-items: start; flex-direction: column; gap: 5px; }
+  .admin-olx-url-row { grid-template-columns: 1fr 1fr; }
+  .admin-olx-url-row .admin-field { grid-column: 1 / -1; }
   .admin-list-section, .admin-editor { padding: 17px; }
   .admin-property-row { grid-template-columns: 58px minmax(0, 1fr); gap: 10px; }
   .admin-property-thumb { width: 58px; height: 52px; }
