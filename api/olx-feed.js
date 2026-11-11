@@ -11,10 +11,13 @@ const PROPERTY_FIELDS = [
   "cep",
   "city",
   "neighborhood",
+  "address",
   "bedrooms",
   "bathrooms",
   "parking",
   "total_area",
+  "state",
+  "living_area",
   "description",
   "features",
   "property_images(id,display_order,is_primary,olx_ready)"

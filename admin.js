@@ -154,6 +154,7 @@ function propertyPayload(formData) {
     condominium: numberOrNull("condominium"),
     iptu: numberOrNull("iptu"),
     city: String(formData.get("city")).trim(),
+    state: String(formData.get("state") || "").trim().toUpperCase() || null,
     neighborhood: String(formData.get("neighborhood")).trim(),
     cep: String(formData.get("cep") || "").replace(/\D/g, "") || null,
     address: String(formData.get("address") || "").trim() || null,
@@ -164,6 +165,7 @@ function propertyPayload(formData) {
     bathrooms: integerOrZero("bathrooms"),
     parking: integerOrZero("parking"),
     total_area: numberOrNull("total_area"),
+    living_area: numberOrNull("living_area"),
     built_area: numberOrNull("built_area"),
     description: String(formData.get("description") || "").trim(),
     features: setPropertyVideo(features, formData.get("video_url")),
@@ -424,7 +426,7 @@ function renderProperties() {
 function renderOlxSummary() {
   const publishedProperties = properties.filter((property) => property.status === "published");
   const report = getOlxExportReport(publishedProperties);
-  const pendingImages = report.validProperties
+  const pendingImages = publishedProperties
     .flatMap((property) => property.property_images || [])
     .filter((image) => image.olx_ready !== true).length;
 
@@ -444,7 +446,7 @@ function renderOlxSummary() {
 
 async function preparePendingPublishedImages() {
   const publishedProperties = properties.filter((property) => property.status === "published");
-  const images = getOlxExportReport(publishedProperties).validProperties
+  const images = publishedProperties
     .flatMap((property) => (property.property_images || [])
       .map((image) => ({ ...image, property_id: property.id })))
     .filter((image) => image.olx_ready !== true);
@@ -479,12 +481,70 @@ async function checkOlxFeed() {
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const xmlText = await response.text();
     const xml = new DOMParser().parseFromString(xmlText, "application/xml");
-    if (xml.querySelector("parsererror") || xml.documentElement.localName !== "Carga"
-      || !xml.querySelector("Carga > Imoveis")) {
-      throw new Error("a resposta não contém o XML esperado pela OLX");
+    const root = xml.documentElement;
+    const namespace = "http://www.vivareal.com/schemas/1.0/VRSync";
+    const xsiNamespace = "http://www.w3.org/2001/XMLSchema-instance";
+    if (xml.querySelector("parsererror") || root.localName !== "ListingDataFeed"
+      || root.namespaceURI !== namespace
+      || root.getAttributeNS(xsiNamespace, "schemaLocation") !== `${namespace} http://xml.vivareal.com/vrsync.xsd`) {
+      throw new Error("a resposta não contém a raiz VRSync ListingDataFeed com namespace oficial");
     }
-    const count = xml.querySelectorAll("Carga > Imoveis > Imovel").length;
-    elements.olxFeedStatus.textContent = `Endpoint público acessível · ${count} anúncio(s) no XML.`;
+    const elementsByName = (node, name) => Array.from(node.getElementsByTagNameNS(namespace, name));
+    const header = elementsByName(root, "Header")[0];
+    const listings = elementsByName(root, "Listings")[0];
+    const requiredHeaderFields = ["Provider", "Email", "ContactName", "PublishDate", "Telephone"];
+    if (!header || !listings || requiredHeaderFields.some((name) => !elementsByName(header, name)[0]?.textContent.trim())) {
+      throw new Error("o cabeçalho VRSync não contém todos os campos obrigatórios");
+    }
+
+    const listingNodes = elementsByName(listings, "Listing");
+    const requiredListingFields = [
+      "ListingID", "Title", "TransactionType", "PublicationType", "Media",
+      "Location", "Details", "ContactInfo"
+    ];
+    for (const listing of listingNodes) {
+      if (requiredListingFields.some((name) => !elementsByName(listing, name)[0])) {
+        throw new Error("há anúncio sem um elemento obrigatório do VRSync");
+      }
+      const images = elementsByName(elementsByName(listing, "Media")[0], "Item")
+        .filter((item) => item.getAttribute("medium") === "image");
+      if (images.length < 5) throw new Error("há anúncio com menos de cinco imagens");
+
+      const location = elementsByName(listing, "Location")[0];
+      if (["Country", "State", "City", "Neighborhood", "PostalCode"]
+        .some((name) => !elementsByName(location, name)[0]?.textContent.trim())) {
+        throw new Error("há anúncio sem um campo obrigatório de localização");
+      }
+      const details = elementsByName(listing, "Details")[0];
+      if (["UsageType", "PropertyType", "Description"]
+        .some((name) => !elementsByName(details, name)[0]?.textContent.trim())) {
+        throw new Error("há anúncio sem tipo ou descrição VRSync");
+      }
+      const contactInfo = elementsByName(listing, "ContactInfo")[0];
+      if (["Name", "Email"].some((name) => !elementsByName(contactInfo, name)[0]?.textContent.trim())) {
+        throw new Error("há anúncio sem os dados mínimos de contato");
+      }
+      if (images.some((item) => {
+        try {
+          return new URL(item.textContent.trim()).protocol !== "https:";
+        } catch {
+          return true;
+        }
+      })) {
+        throw new Error("há anúncio com uma URL de imagem inválida");
+      }
+    }
+
+    const exportedHeader = response.headers.get("X-OLX-Exported-Count");
+    const rejectedHeader = response.headers.get("X-OLX-Rejected-Count");
+    const exported = Number(exportedHeader);
+    const rejected = Number(rejectedHeader);
+    if (!/^\d+$/.test(exportedHeader || "") || !/^\d+$/.test(rejectedHeader || "")
+      || listingNodes.length !== exported) {
+      throw new Error("as quantidades exportadas/rejeitadas não conferem com os cabeçalhos do endpoint");
+    }
+    elements.olxFeedStatus.textContent =
+      `Feed VRSync acessível · ${exported} exportado(s) · ${rejected} rejeitado(s).`;
     elements.olxFeedStatus.dataset.state = "success";
   } catch (error) {
     elements.olxFeedStatus.textContent = `Endpoint ainda não validado: ${error.message}. Publique a versão atual no Vercel e teste novamente.`;

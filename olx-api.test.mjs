@@ -28,27 +28,28 @@ after(() => {
 const property = {
   id: "12345678-1234-1234-1234-123456789abc",
   status: "published",
-  title: "Casa publicada",
-  property_type: "Casa",
+  title: "Terreno publicado no Centro",
+  property_type: "Terreno",
   purpose: "sale",
   price: 350000,
   condominium: null,
   cep: "18035000",
   city: "Sorocaba",
   neighborhood: "Centro",
+  address: "Rua Exemplo, 100 - SP",
   bedrooms: 2,
   bathrooms: 1,
   parking: 1,
   total_area: 90,
-  description: "Descrição válida",
+  description: "Terreno publicado com localização central e acesso facilitado a comércio e serviços da região.",
   features: [],
-  property_images: [{
-    id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
-    display_order: 0,
-    is_primary: true,
+  property_images: Array.from({ length: 5 }, (_, index) => ({
+    id: `${String(index + 1).padStart(8, "0")}-aaaa-aaaa-aaaa-aaaaaaaaaaaa`,
+    display_order: index,
+    is_primary: index === 0,
     olx_ready: true,
     olx_storage_path: null
-  }]
+  }))
 };
 
 function createSupabaseMock({
@@ -131,8 +132,15 @@ function createResponse() {
   };
 }
 
-test("feed GET queries published property fields and returns official XML", async () => {
-  mockClient = createSupabaseMock();
+test("feed GET queries published property fields and returns official VRSync XML", async () => {
+  const residentialProperty = {
+    ...property,
+    property_type: "Casa",
+    address: "Rua Exemplo, 100",
+    state: "SP",
+    living_area: 82
+  };
+  mockClient = createSupabaseMock({ propertyData: [residentialProperty] });
   process.env.PUBLIC_SITE_URL = "https://feed.example/";
   const response = createResponse();
 
@@ -143,10 +151,18 @@ test("feed GET queries published property fields and returns official XML", asyn
   assert.equal(response.headers["x-olx-exported-count"], "1");
   assert.equal(response.headers["x-olx-rejected-count"], "0");
   const xml = response.body.toString("utf8");
-  assert.match(xml, /<Carga[\s\S]*<CodigoImovel>12345678123412341234<\/CodigoImovel>/);
-  assert.match(xml, /<CEP>18035000<\/CEP>/);
+  assert.match(xml, /<ListingDataFeed[\s\S]*<ListingID>12345678-1234-1234-1234-123456789abc<\/ListingID>/);
+  assert.match(xml, /<State abbreviation="SP">São Paulo<\/State>/);
+  assert.match(xml, /<LivingArea unit="square metres">82<\/LivingArea>/);
+  assert.match(xml, /<PostalCode>18035-000<\/PostalCode>/);
+  assert.match(xml, /<PropertyType>Residential \/ Home<\/PropertyType>/);
+  assert.equal((xml.match(/medium="image"/g) || []).length, 5);
+  assert.doesNotMatch(xml, /<Carga\b/);
   assert.deepEqual(mockClient.queries[0].filters, [["status", "published"]]);
   assert.match(mockClient.queries[0].selection, /cep/);
+  assert.match(mockClient.queries[0].selection, /address/);
+  assert.match(mockClient.queries[0].selection, /(?:^|,)state(?:,|$)/);
+  assert.match(mockClient.queries[0].selection, /(?:^|,)living_area(?:,|$)/);
   assert.match(mockClient.queries[0].selection, /property_images\(id,display_order,is_primary,olx_ready\)/);
 });
 
@@ -161,7 +177,7 @@ test("feed queries only published properties and reports published records rejec
   assert.deepEqual(mockClient.queries[0].filters, [["status", "published"]]);
   assert.equal(response.headers["x-olx-exported-count"], "1");
   assert.equal(response.headers["x-olx-rejected-count"], "1");
-  assert.equal((response.body.toString("utf8").match(/<Imovel>/g) || []).length, 1);
+  assert.equal((response.body.toString("utf8").match(/<Listing>/g) || []).length, 1);
 });
 
 test("feed includes published listings and excludes drafts", async () => {
@@ -177,8 +193,8 @@ test("feed includes published listings and excludes drafts", async () => {
   await feedHandler({ method: "GET" }, response);
 
   const xml = response.body.toString("utf8");
-  assert.match(xml, /<CodigoImovel>12345678123412341234<\/CodigoImovel>/);
-  assert.doesNotMatch(xml, /99999999123412341234/);
+  assert.match(xml, /<ListingID>12345678-1234-1234-1234-123456789abc<\/ListingID>/);
+  assert.doesNotMatch(xml, /<ListingID>99999999-1234-1234-1234-123456789abc<\/ListingID>/);
   assert.equal(response.headers["x-olx-exported-count"], "1");
 });
 

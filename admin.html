@@ -66,11 +66,11 @@
           <div><p class="admin-eyebrow">Distribuição de anúncios</p><h2 id="olxIntegrationTitle">Integração OLX</h2></div>
           <span class="admin-olx-status" id="olxFeedStatus" role="status" aria-live="polite">Aguardando verificação do feed.</span>
         </div>
-        <p class="admin-olx-description">O XML é atualizado automaticamente a partir dos imóveis publicados que atendem aos campos obrigatórios da OLX.</p>
+        <p class="admin-olx-description">O feed VRSync é atualizado automaticamente a partir dos imóveis publicados que atendem aos requisitos oficiais do Grupo OLX.</p>
         <div class="admin-olx-url-row">
-          <label class="admin-field" for="olxFeedUrl"><span>Endereço público do XML</span><input id="olxFeedUrl" type="url" readonly></label>
+          <label class="admin-field" for="olxFeedUrl"><span>Endereço público do feed VRSync</span><input id="olxFeedUrl" type="url" readonly></label>
           <button class="admin-button admin-button-quiet" id="copyOlxFeedButton" type="button">Copiar endereço</button>
-          <button class="admin-button admin-button-quiet" id="testOlxFeedButton" type="button">Testar acesso</button>
+          <button class="admin-button admin-button-quiet" id="testOlxFeedButton" type="button">Verificar feed</button>
         </div>
         <p class="admin-olx-pending" id="olxPendingSummary"></p>
         <button class="admin-button admin-button-quiet" id="prepareOlxImagesButton" type="button">Preparar fotos pendentes</button>
@@ -78,10 +78,10 @@
           <summary>Orientações para configurar na OLX</summary>
           <ol>
             <li>Confirme com a OLX a elegibilidade e habilitação da importação XML para a conta.</li>
-            <li>Envie o endereço público acima para a equipe responsável pela integração e solicite a validação do feed.</li>
-            <li>O feed envia apenas imóveis publicados com CEP, descrição e tipo de imóvel compatíveis; complete os pendentes antes da validação.</li>
-            <li>As fotos originais permanecem privadas; prepare as fotos pendentes para que versões compatíveis sejam incluídas no XML.</li>
-            <li>Consulte o <a href="https://developers.olx.com.br/anuncio/xml/real_estate/home.html" target="_blank" rel="noopener noreferrer">manual oficial de importação XML para imóveis</a>. A documentação não especifica o canal de habilitação da conta.</li>
+            <li>Envie o endereço público acima para a equipe responsável pela integração e solicite a validação do feed VRSync.</li>
+            <li>O feed rejeita anúncios sem os dados VRSync obrigatórios, incluindo UF identificável, área compatível, descrição, tipo, CEP e cinco fotos JPG prontas.</li>
+            <li>As fotos originais permanecem privadas; prepare as fotos pendentes para que versões compatíveis sejam incluídas no feed.</li>
+            <li>Consulte a <a href="https://developers.grupozap.com/feeds/vrsync/examples.html" target="_blank" rel="noopener noreferrer">documentação oficial VRSync do Grupo OLX</a> e use o <a href="https://developers.grupozap.com/feeds/xml_validator/" target="_blank" rel="noopener noreferrer">validador XML oficial</a>.</li>
           </ol>
         </details>
       </section>
@@ -105,6 +105,7 @@
             <label class="admin-field"><span>Condomínio (R$)</span><input name="condominium" type="number" min="0" step="0.01"></label>
             <label class="admin-field"><span>IPTU (R$)</span><input name="iptu" type="number" min="0" step="0.01"></label>
             <label class="admin-field"><span>Cidade *</span><input name="city" maxlength="100" required></label>
+            <label class="admin-field"><span>UF</span><input name="state" maxlength="2" pattern="[A-Z]{2}" title="Informe a UF com 2 letras, por exemplo SP." placeholder="SP"></label>
             <label class="admin-field"><span>Bairro *</span><input name="neighborhood" maxlength="120" required></label>
             <label class="admin-field"><span>CEP do imóvel</span><input name="cep" inputmode="numeric" autocomplete="postal-code" maxlength="9" pattern="[0-9]{5}-?[0-9]{3}" title="Informe um CEP com 8 números." placeholder="00000-000"></label>
             <label class="admin-field admin-field-wide"><span>Endereço</span><input name="address" maxlength="240"></label>
@@ -113,6 +114,7 @@
             <label class="admin-field"><span>Banheiros</span><input name="bathrooms" type="number" min="0" step="1" value="0"></label>
             <label class="admin-field"><span>Vagas</span><input name="parking" type="number" min="0" step="1" value="0"></label>
             <label class="admin-field"><span>Área total (m²)</span><input name="total_area" type="number" min="0" step="0.01"></label>
+            <label class="admin-field"><span>Área útil (m²)</span><input name="living_area" type="number" min="0" step="0.01"></label>
             <label class="admin-field"><span>Área construída (m²)</span><input name="built_area" type="number" min="0" step="0.01"></label>
             <label class="admin-field admin-field-wide"><span>Descrição completa</span><textarea name="description" rows="5" maxlength="10000"></textarea></label>
             <label class="admin-field admin-field-wide"><span>Características e diferenciais (uma por linha)</span><textarea name="features" rows="4" maxlength="3000"></textarea></label>
