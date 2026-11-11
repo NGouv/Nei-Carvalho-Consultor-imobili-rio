@@ -47,8 +47,13 @@ function propertySubtype(property) {
   return SUBTYPES.get(normalized(property.property_type)) || "";
 }
 
+function propertyCode(property) {
+  return String(property?.id || "").replace(/[^a-zA-Z0-9]/g, "").slice(0, 20);
+}
+
 export function getOlxPropertyIssues(property) {
   const issues = [];
+  if (!propertyCode(property)) issues.push("código do imóvel obrigatório");
   const cep = String(property.cep || "").replace(/\D/g, "");
   if (cep.length !== 8) issues.push("CEP obrigatório");
   if (!cleanDescription(property.description)) issues.push("descrição obrigatória");
@@ -137,7 +142,7 @@ function observation(property) {
 function propertyXml(property, baseUrl) {
   const subtype = propertySubtype(property);
   const propertyId = String(property.id);
-  const code = propertyId.replace(/[^a-zA-Z0-9]/g, "").slice(0, 20);
+  const code = propertyCode(property);
   const images = (Array.isArray(property.property_images) ? property.property_images : [])
     .filter((image) => image && image.id && image.olx_ready === true)
     .slice()

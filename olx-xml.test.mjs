@@ -68,14 +68,34 @@ test("maps rental prices and the property types accepted by the OLX guide", () =
 
 test("omits published records missing OLX-required data or a documented subtype", () => {
   const incompleteProperties = [
+    { ...completeProperty, id: null },
     { ...completeProperty, cep: null },
     { ...completeProperty, description: "  " },
     { ...completeProperty, property_type: "Outro" }
   ];
-  assert.deepEqual(getOlxPropertyIssues(incompleteProperties[0]), ["CEP obrigatório"]);
-  assert.deepEqual(getOlxPropertyIssues(incompleteProperties[1]), ["descrição obrigatória"]);
-  assert.deepEqual(getOlxPropertyIssues(incompleteProperties[2]), ["tipo de imóvel sem mapeamento OLX"]);
+  assert.deepEqual(getOlxPropertyIssues(incompleteProperties[0]), ["código do imóvel obrigatório"]);
+  assert.deepEqual(getOlxPropertyIssues(incompleteProperties[1]), ["CEP obrigatório"]);
+  assert.deepEqual(getOlxPropertyIssues(incompleteProperties[2]), ["descrição obrigatória"]);
+  assert.deepEqual(getOlxPropertyIssues(incompleteProperties[3]), ["tipo de imóvel sem mapeamento OLX"]);
   assert.match(buildOlxXml(incompleteProperties, "https://imoveis.example"), /<Imoveis>\s*<\/Imoveis>/);
+});
+
+test("keeps all eight valid listings and their prepared photos in the OLX feed", () => {
+  const properties = Array.from({ length: 8 }, (_, index) => ({
+    ...completeProperty,
+    id: `00000000-0000-0000-0000-${String(index + 1).padStart(12, "0")}`,
+    property_images: [{
+      id: `${String(index + 1).padStart(8, "0")}-aaaa-aaaa-aaaa-aaaaaaaaaaaa`,
+      display_order: 0,
+      is_primary: true,
+      olx_ready: true
+    }]
+  }));
+  const xml = buildOlxXml(properties, "https://imoveis.example");
+
+  assert.equal((xml.match(/<Imovel>/g) || []).length, 8);
+  assert.equal((xml.match(/<CodigoImovel>/g) || []).length, 8);
+  assert.equal((xml.match(/<URLArquivo>/g) || []).length, 8);
 });
 
 test("exports only a YouTube video and keeps arbitrary features in the observation", () => {
