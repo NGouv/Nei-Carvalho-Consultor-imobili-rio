@@ -54,10 +54,19 @@ module.exports = async function handler(request, response) {
 
     const supabase = createPublicSupabaseClient();
     const properties = await fetchPublishedProperties(supabase);
-    const { buildOlxXml } = await import("../olx-xml.mjs");
+    const { buildOlxXml, getOlxExportReport } = await import("../olx-xml.mjs");
+    const report = getOlxExportReport(properties);
+    if (report.rejectedProperties.length) {
+      console.warn("[olx-feed] Imóveis publicados rejeitados na exportação.", report.rejectedProperties.map(({ property, issues }) => ({
+        id: property.id,
+        issues
+      })));
+    }
     response.setHeader("Content-Type", "application/xml; charset=utf-8");
+    response.setHeader("X-OLX-Exported-Count", String(report.validProperties.length));
+    response.setHeader("X-OLX-Rejected-Count", String(report.rejectedProperties.length));
     response.statusCode = 200;
-    response.end(buildOlxXml(properties, parsedSiteUrl.origin));
+    response.end(buildOlxXml(report.validProperties, parsedSiteUrl.origin));
   } catch (error) {
     console.error("[olx-feed] Não foi possível gerar o feed.", error);
     response.setHeader("Content-Type", "text/plain; charset=utf-8");

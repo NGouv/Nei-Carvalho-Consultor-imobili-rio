@@ -1,4 +1,6 @@
 const PROPERTY_VIDEO_MARKER = "__NEI_CARVALHO_PROPERTY_VIDEO__:";
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const MAX_DESCRIPTION_LENGTH = 6000;
 
 const SUBTYPES = new Map([
   ["apartamento", "Apartamento"],
@@ -54,11 +56,83 @@ function propertyCode(property) {
 export function getOlxPropertyIssues(property) {
   const issues = [];
   if (!propertyCode(property)) issues.push("código do imóvel obrigatório");
+  else if (!UUID_PATTERN.test(String(property.id))) issues.push("identificador do imóvel inválido");
   const cep = String(property.cep || "").replace(/\D/g, "");
   if (cep.length !== 8) issues.push("CEP obrigatório");
-  if (!cleanDescription(property.description)) issues.push("descrição obrigatória");
+  const description = cleanDescription(property.description);
+  if (!description) issues.push("descrição obrigatória");
+  else if (Array.from(description).length > MAX_DESCRIPTION_LENGTH) {
+    issues.push("descrição excede 6000 caracteres");
+  }
+  else if (Array.from(observation(property)).length > MAX_DESCRIPTION_LENGTH) {
+    issues.push("observação excede 6000 caracteres");
+  }
+  const title = cleanText(property.title);
+  if (Array.from(title).length > 90) issues.push("título excede 90 caracteres");
   if (!propertySubtype(property)) issues.push("tipo de imóvel sem mapeamento OLX");
+  if (!["sale", "rent"].includes(property.purpose)) issues.push("finalidade do imóvel inválida");
+  const price = integerValue(property.price);
+  const hasPrice = property.price !== null
+    && property.price !== undefined
+    && !(typeof property.price === "string" && !property.price.trim());
+  if (hasPrice && (price === null || price <= 0)) issues.push("preço inválido");
+  if (property.condominium !== null && property.condominium !== undefined
+    && integerValue(property.condominium) === null) {
+    issues.push("condomínio inválido");
+  }
+  if (property.total_area !== null && property.total_area !== undefined
+    && integerValue(property.total_area) === null) {
+    issues.push("área total inválida");
+  }
+  if (["Apartamento", "Casa"].includes(propertySubtype(property))
+    && !validCount(property.bedrooms)) {
+    issues.push("quantidade de dormitórios obrigatória ou inválida");
+  }
+  for (const [field, label] of [["bathrooms", "banheiros"], ["parking", "vagas"]]) {
+    if (property[field] !== null && property[field] !== undefined && !validCount(property[field])) {
+      issues.push(`quantidade de ${label} inválida`);
+    }
+  }
+  for (const image of Array.isArray(property.property_images) ? property.property_images : []) {
+    if (image?.olx_ready === true && !UUID_PATTERN.test(String(image.id || ""))) {
+      issues.push("identificador de fotografia inválido");
+      break;
+    }
+  }
   return issues;
+}
+
+export function getOlxExportReport(properties) {
+  const rejectedProperties = [];
+  const validProperties = [];
+  const codes = new Map();
+
+  for (const property of Array.isArray(properties) ? properties : []) {
+    const issues = getOlxPropertyIssues(property);
+    if (issues.length) {
+      rejectedProperties.push({ property, issues });
+      continue;
+    }
+
+    const code = propertyCode(property).toLowerCase();
+    const matchingCode = codes.get(code);
+    if (matchingCode) {
+      const duplicateIssue = "código do imóvel duplicado";
+      if (!matchingCode.duplicate) {
+        const previous = validProperties.indexOf(matchingCode.property);
+        if (previous !== -1) validProperties.splice(previous, 1);
+        rejectedProperties.push({ property: matchingCode.property, issues: [duplicateIssue] });
+      }
+      rejectedProperties.push({ property, issues: [duplicateIssue] });
+      matchingCode.duplicate = true;
+      continue;
+    }
+
+    codes.set(code, { property, duplicate: false });
+    validProperties.push(property);
+  }
+
+  return { validProperties, rejectedProperties };
 }
 
 function xmlSafe(value) {
@@ -80,13 +154,20 @@ function tag(name, value) {
 }
 
 function boundedCount(value) {
-  const count = Number(value);
-  return Number.isFinite(count) ? Math.min(5, Math.max(0, Math.floor(count))) : 0;
+  return Math.min(5, value);
 }
 
 function integerValue(value) {
+  if (typeof value !== "number" && typeof value !== "string") return null;
+  if (typeof value === "string" && !value.trim()) return null;
   const number = Number(value);
   return Number.isFinite(number) && number >= 0 ? Math.round(number) : null;
+}
+
+function validCount(value) {
+  return (typeof value === "number" || (typeof value === "string" && Boolean(value.trim())))
+    && Number.isInteger(Number(value))
+    && Number(value) >= 0;
 }
 
 function imageUrl(baseUrl, propertyId, imageId) {
@@ -134,9 +215,16 @@ function observation(property) {
     .filter((feature) => typeof feature === "string" && !feature.startsWith(PROPERTY_VIDEO_MARKER))
     .map(cleanText)
     .filter(Boolean);
-  const parts = [cleanDescription(property.description)];
-  if (features.length) parts.push(`Características: ${features.join(", ")}`);
-  return Array.from(parts.join("\n")).slice(0, 6000).join("").replace(/\n/g, "\\n");
+  const description = cleanDescription(property.description);
+  const parts = [description];
+  for (const feature of features) {
+    const addition = `${parts.length > 1 || description ? "\nCaracterísticas: " : ""}${feature}`;
+    if (Array.from(parts.join("")).length + Array.from(addition).length > MAX_DESCRIPTION_LENGTH) break;
+    if (parts.length === 1 && description) parts.push(`Características: ${feature}`);
+    else if (parts.length === 1) parts[0] = feature;
+    else parts[parts.length - 1] += `, ${feature}`;
+  }
+  return parts.join("\n").replace(/\n/g, "\\n");
 }
 
 function propertyXml(property, baseUrl) {
@@ -154,27 +242,31 @@ function propertyXml(property, baseUrl) {
   ];
 
   const title = cleanText(property.title);
-  if (title) lines.push(tag("TituloAnuncio", Array.from(title).slice(0, 90).join("")));
+  if (title) lines.push(tag("TituloAnuncio", title));
   lines.push(tag("SubTipoImovel", subtype));
-  if (property.city) lines.push(tag("Cidade", cleanText(property.city)));
-  if (property.neighborhood) lines.push(tag("Bairro", cleanText(property.neighborhood)));
+  if (cleanText(property.city)) lines.push(tag("Cidade", cleanText(property.city)));
+  if (cleanText(property.neighborhood)) lines.push(tag("Bairro", cleanText(property.neighborhood)));
   lines.push(tag("CEP", String(property.cep).replace(/\D/g, "")));
 
   const price = integerValue(property.price);
   if (price !== null) lines.push(tag(property.purpose === "rent" ? "PrecoLocacao" : "PrecoVenda", price));
   const condominium = integerValue(property.condominium);
-  if (property.condominium !== null && property.condominium !== undefined && condominium !== null) {
+  if (condominium !== null) {
     lines.push(tag("PrecoCondominio", condominium));
   }
   const totalArea = integerValue(property.total_area);
   if (totalArea > 0) lines.push(tag("AreaTotal", totalArea));
 
   if (subtype === "Apartamento" || subtype === "Casa") {
-    lines.push(tag("QtdDormitorios", boundedCount(property.bedrooms)));
-    lines.push(tag("QtdBanheiros", boundedCount(property.bathrooms)));
-    lines.push(tag("QtdVagas", boundedCount(property.parking)));
-  } else if (subtype === "Comercial") {
-    lines.push(tag("QtdVagas", boundedCount(property.parking)));
+    lines.push(tag("QtdDormitorios", boundedCount(Number(property.bedrooms))));
+    if (property.bathrooms !== null && property.bathrooms !== undefined) {
+      lines.push(tag("QtdBanheiros", boundedCount(Number(property.bathrooms))));
+    }
+    if (property.parking !== null && property.parking !== undefined) {
+      lines.push(tag("QtdVagas", boundedCount(Number(property.parking))));
+    }
+  } else if (subtype === "Comercial" && property.parking !== null && property.parking !== undefined) {
+    lines.push(tag("QtdVagas", boundedCount(Number(property.parking))));
   }
 
   lines.push(tag("Observacao", observation(property)));
@@ -201,8 +293,7 @@ function propertyXml(property, baseUrl) {
 }
 
 export function buildOlxXml(properties, baseUrl) {
-  const validProperties = (Array.isArray(properties) ? properties : [])
-    .filter((property) => getOlxPropertyIssues(property).length === 0);
+  const { validProperties } = getOlxExportReport(properties);
   const items = validProperties.map((property) => propertyXml(property, baseUrl)).join("\n");
   return [
     '<?xml version="1.0" encoding="utf-8"?>',

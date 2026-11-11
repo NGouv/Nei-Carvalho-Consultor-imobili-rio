@@ -27,6 +27,7 @@ after(() => {
 
 const property = {
   id: "12345678-1234-1234-1234-123456789abc",
+  status: "published",
   title: "Casa publicada",
   property_type: "Casa",
   purpose: "sale",
@@ -77,7 +78,9 @@ function createSupabaseMock({
           return builder;
         },
         range() {
-          return Promise.resolve({ data: propertyData, error: null });
+          const filteredData = propertyData.filter((row) => query.filters.every(([column, value]) =>
+            row[column] === value));
+          return Promise.resolve({ data: filteredData, error: null });
         },
         maybeSingle() {
           const data = table === "property_images" ? imageData : publishedPropertyData;
@@ -137,12 +140,46 @@ test("feed GET queries published property fields and returns official XML", asyn
 
   assert.equal(response.statusCode, 200);
   assert.equal(response.headers["content-type"], "application/xml; charset=utf-8");
+  assert.equal(response.headers["x-olx-exported-count"], "1");
+  assert.equal(response.headers["x-olx-rejected-count"], "0");
   const xml = response.body.toString("utf8");
   assert.match(xml, /<Carga[\s\S]*<CodigoImovel>12345678123412341234<\/CodigoImovel>/);
   assert.match(xml, /<CEP>18035000<\/CEP>/);
   assert.deepEqual(mockClient.queries[0].filters, [["status", "published"]]);
   assert.match(mockClient.queries[0].selection, /cep/);
   assert.match(mockClient.queries[0].selection, /property_images\(id,display_order,is_primary,olx_ready\)/);
+});
+
+test("feed queries only published properties and reports published records rejected for OLX", async () => {
+  const invalidPublishedProperty = { ...property, cep: null };
+  mockClient = createSupabaseMock({ propertyData: [property, invalidPublishedProperty] });
+  process.env.PUBLIC_SITE_URL = "https://feed.example/";
+  const response = createResponse();
+
+  await feedHandler({ method: "GET" }, response);
+
+  assert.deepEqual(mockClient.queries[0].filters, [["status", "published"]]);
+  assert.equal(response.headers["x-olx-exported-count"], "1");
+  assert.equal(response.headers["x-olx-rejected-count"], "1");
+  assert.equal((response.body.toString("utf8").match(/<Imovel>/g) || []).length, 1);
+});
+
+test("feed includes published listings and excludes drafts", async () => {
+  const draft = {
+    ...property,
+    id: "99999999-1234-1234-1234-123456789abc",
+    status: "draft"
+  };
+  mockClient = createSupabaseMock({ propertyData: [property, draft] });
+  process.env.PUBLIC_SITE_URL = "https://feed.example/";
+  const response = createResponse();
+
+  await feedHandler({ method: "GET" }, response);
+
+  const xml = response.body.toString("utf8");
+  assert.match(xml, /<CodigoImovel>12345678123412341234<\/CodigoImovel>/);
+  assert.doesNotMatch(xml, /99999999123412341234/);
+  assert.equal(response.headers["x-olx-exported-count"], "1");
 });
 
 test("image URL serves a ready image directly for a published property", async () => {

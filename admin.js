@@ -1,6 +1,6 @@
 import { escapeHtml, isSupabaseConfigured, signImageUrls, supabase } from "./supabase.js";
 import { extractPropertyVideo, parsePropertyVideoUrl, setPropertyVideo } from "./video.js";
-import { getOlxPropertyIssues } from "./olx-xml.mjs";
+import { getOlxExportReport, getOlxPropertyIssues } from "./olx-xml.mjs";
 
 const MAX_FILE_SIZE = 8 * 1024 * 1024;
 const MAX_PHOTOS = 20;
@@ -102,6 +102,13 @@ function renderPhotoPreviews() {
   elements.photoPreviews.innerHTML = existing + selected;
 }
 
+function syncBedroomRequirement() {
+  const field = elements.form.elements.bedrooms;
+  const required = ["Casa", "Apartamento"].includes(elements.form.elements.property_type.value);
+  field.required = required;
+  field.closest("label").querySelector("span").textContent = required ? "Quartos *" : "Quartos";
+}
+
 function setEditorOpen(open) {
   elements.editor.hidden = !open;
   if (open) elements.editor.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -110,7 +117,7 @@ function setEditorOpen(open) {
 function resetEditor() {
   elements.form.reset();
   elements.form.elements.id.value = "";
-  elements.form.elements.bedrooms.value = "0";
+  syncBedroomRequirement();
   elements.form.elements.suites.value = "0";
   elements.form.elements.bathrooms.value = "0";
   elements.form.elements.parking.value = "0";
@@ -135,11 +142,13 @@ function openNewProperty() {
 function propertyPayload(formData) {
   const numberOrNull = (field) => formData.get(field) === "" ? null : Number(formData.get(field));
   const integerOrZero = (field) => Number(formData.get(field) || 0);
+  const propertyType = String(formData.get("property_type"));
+  const rawBedrooms = formData.get("bedrooms");
   const features = String(formData.get("features") || "").split(/\r?\n/).map((value) => value.trim()).filter(Boolean);
   return {
     title: String(formData.get("title")).trim(),
     reference: String(formData.get("reference") || "").trim() || null,
-    property_type: String(formData.get("property_type")),
+    property_type: propertyType,
     purpose: String(formData.get("purpose")),
     price: Number(formData.get("price")),
     condominium: numberOrNull("condominium"),
@@ -148,7 +157,9 @@ function propertyPayload(formData) {
     neighborhood: String(formData.get("neighborhood")).trim(),
     cep: String(formData.get("cep") || "").replace(/\D/g, "") || null,
     address: String(formData.get("address") || "").trim() || null,
-    bedrooms: integerOrZero("bedrooms"),
+    bedrooms: rawBedrooms === "" && ["Casa", "Apartamento"].includes(propertyType)
+      ? null
+      : integerOrZero("bedrooms"),
     suites: integerOrZero("suites"),
     bathrooms: integerOrZero("bathrooms"),
     parking: integerOrZero("parking"),
@@ -361,6 +372,7 @@ async function openEditProperty(id) {
     else if (field.type === "checkbox") field.checked = Boolean(property[field.name]);
     else if (field.name !== "photos" && field.name !== "id") field.value = property[field.name] ?? "";
   }
+  syncBedroomRequirement();
   fields.id.value = property.id;
   try {
     existingPhotos = await signImageUrls(property.property_images || []);
@@ -411,28 +423,28 @@ function renderProperties() {
 
 function renderOlxSummary() {
   const publishedProperties = properties.filter((property) => property.status === "published");
-  const pending = publishedProperties
-    .map((property) => getOlxPropertyIssues(property))
-    .filter((issues) => issues.length > 0);
-  const pendingImages = publishedProperties
-    .filter((property) => getOlxPropertyIssues(property).length === 0)
+  const report = getOlxExportReport(publishedProperties);
+  const pendingImages = report.validProperties
     .flatMap((property) => property.property_images || [])
     .filter((image) => image.olx_ready !== true).length;
 
-  const reasons = new Map();
-  pending.flat().forEach((issue) => reasons.set(issue, (reasons.get(issue) || 0) + 1));
-  const details = Array.from(reasons, ([issue, count]) => `${issue} (${count})`).join("; ");
   const messages = [];
   if (!publishedProperties.length) messages.push("Nenhum imóvel publicado para exportar.");
-  else if (pending.length) messages.push(`${pending.length} imóvel(is) publicado(s) não entram no XML até corrigir: ${details}.`);
-  else messages.push(`${publishedProperties.length} imóvel(is) publicado(s) com os campos obrigatórios preenchidos.`);
+  else {
+    messages.push(`${report.validProperties.length} de ${publishedProperties.length} imóvel(is) publicado(s) pronto(s) para exportar.`);
+    if (report.rejectedProperties.length) {
+      const details = report.rejectedProperties.map(({ property, issues }) =>
+        `${property.title || property.id}: ${issues.join(", ")}`).join("; ");
+      messages.push(`Rejeitados: ${details}.`);
+    }
+  }
   if (pendingImages) messages.push(`${pendingImages} foto(s) publicada(s) aguardam preparação e não entram no XML.`);
   elements.olxPendingSummary.textContent = messages.join(" ");
 }
 
 async function preparePendingPublishedImages() {
-  const images = properties
-    .filter((property) => property.status === "published" && getOlxPropertyIssues(property).length === 0)
+  const publishedProperties = properties.filter((property) => property.status === "published");
+  const images = getOlxExportReport(publishedProperties).validProperties
     .flatMap((property) => (property.property_images || [])
       .map((image) => ({ ...image, property_id: property.id })))
     .filter((image) => image.olx_ready !== true);
@@ -696,6 +708,7 @@ async function initializeAdmin() {
     setEditorOpen(false);
   });
   elements.form.addEventListener("submit", saveProperty);
+  elements.form.elements.property_type.addEventListener("change", syncBedroomRequirement);
   elements.form.elements.video_url.addEventListener("input", (event) => {
     const field = event.currentTarget;
     const value = field.value.trim();
